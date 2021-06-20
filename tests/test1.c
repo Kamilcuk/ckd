@@ -16,11 +16,6 @@ int main() {
     CKDTEST(ckd_mul(ckd_add(1, 1), 2), 4, 0);
 	CKDTEST(ckd_div(ckd_mul(ckd_mul(1, 2), 4), 2), 2 * 4 / 2, 0);
 
-	CKDTEST(ckd_mul(1l, 2ll), 2, 0);
-
-	uint64_t u64 = 2;
-	CKDTEST(ckd_mul(u64, 2), 4, 0);
-
 	CKDTEST(ckd_add(INT_MAX, 1), INT_MIN, 1);
 	CKDTEST(ckd_sub(INT_MIN, 1), INT_MAX, 1);
 	CKDTEST(ckd_mul(INT_MAX / 2 + 1, 2), INT_MIN, 1);
@@ -48,6 +43,17 @@ int main() {
 	b = ckd_add(&a, INT_MIN, -1);
 	TEST(a == INT_MAX);
 	TEST(b == 1);
+
+#ifndef _ckd_ONLYSAMETYPES
+	CKDTEST(ckd_mul(1l, 2ll), 2, 0);
+
+	uint64_t u64 = 2;
+	CKDTEST(ckd_mul(u64, 2), 4, 0);
+
+	b = ckd_add(&a, LONG_MAX, 0);
+	TEST(a == (int)LONG_MAX);
+	TEST(b == 1); // conversion overflowed
+#endif
 
 	CKDEND();
 }

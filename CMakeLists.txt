@@ -9,15 +9,28 @@ endif()
 
 project(ckd LANGUAGES C)
 
+include(CheckTypeSize)
+check_type_size("__int128" UINT128 BUILTIN_TYPES_ONLY LANGUAGE C)
+if (HAVE_UINT128)
+	set(HAVE_UINT128 1)
+else()
+	set(HAVE_UINT128 0)
+endif()
+
+find_program(Python_EXECUTABLE NAMES python3 python2 python REQUIRED)
+
 add_custom_command(
 	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include
 	COMMAND
+		${Python_EXECUTABLE}
 		${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py 
+		"${HAVE_UINT128}"
 		${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 )
 add_custom_target(ckdint.h DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h)
+
 add_library(${PROJECT_NAME} INTERFACE
 	${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 )

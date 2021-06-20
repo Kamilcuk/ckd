@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-import sys; from jinja2 import Template; outf = open(sys.argv[1], 'w') if len(sys.argv) > 1 else sys.stdout; print(Template(r'''
-{# The above is only one line, so that jinja2 reports just 2 lines below the error location. #}
-// Header [[[
+str = r'''
+// vim: ft=c tabstop=4 expandtab shiftwidth=4 softtabstop=4 autoindent foldmethod=marker foldmarker=[[[,]]]
 /*
  * @file
  * @author Kamil Cukrowski <kamilcukrowski@gmail.com>
  * @date 2021-06-19
  * SPDX-License-Identifier: MIT + Beerware
  */
+// Header [[[
 #ifndef CKDINT_H_
 #define CKDINT_H_
 
@@ -16,19 +16,74 @@ import sys; from jinja2 import Template; outf = open(sys.argv[1], 'w') if len(sy
 #include <stdint.h>
 #include <limits.h>
 
-{% set ops = [ "add", "sub", "mul", "div" ] %}
-{% set data = [
-        ("int","int","INT_MAX","INT_MIN"),
-        ("uint","unsigned int","UINT_MAX","0"),
-        ("long","long","LONG_MAX","LONG_MIN"),
-        ("ulong","unsigned long","ULONG_MAX","0"),
-        ("llong","long long","LLONG_MAX","LLONG_MIN"),
-        ("ullong","unsigned long long","ULLONG_MAX","0"),
+{# Set this to 0 to compile only same types operations, like ckd_add(int*, int, int) -#}
+{% set ONLYSAMETYPES = 0 %}
+{# -#}
+{% set OPS = [ "add", "sub", "mul", "div" ] %}
+{# DATA format: name type detect max min #}
+{% set DATA = [
+        ("schar"  ,"signed char"       ,"1"                ,"SCHAR_MAX"  ,"SCHAR_MIN") ,
+        ("uchar"  ,"unsigned char"     ,"1"                ,"UCHAR_MAX"  ,"0")         ,
+        ("shrt"   ,"short"             ,"1"                ,"SHRT_MAX"   ,"SHRT_MIN")  ,
+        ("ushrt"  ,"unsigned short"    ,"1"                ,"USHRT_MAX"  ,"0")         ,
+        ("int"    ,"int"               ,"1"                ,"INT_MAX"    ,"INT_MIN")   ,
+        ("uint"   ,"unsigned int"      ,"1"                ,"UINT_MAX"   ,"0")         ,
+        ("long"   ,"long"              ,"1"                ,"LONG_MAX"   ,"LONG_MIN")  ,
+        ("ulong"  ,"unsigned long"     ,"1"                ,"ULONG_MAX"  ,"0")         ,
+        ("llong"  ,"long long"         ,"1"                ,"LLONG_MAX"  ,"LLONG_MIN") ,
+        ("ullong" ,"unsigned long long","1"                ,"ULLONG_MAX" ,"0")         ,
     ]
 %}
+{% set DATA128 = [
+        ("int128" ,"__int128"          ,"__SIZEOF_INT128__","INT128_MAX" ,"INT128_MIN"),
+        ("uint128","unsigned __int128" ,"__SIZEOF_INT128__","UINT128_MAX","0")         ,
+    ]
+%}
+{% if HAVE_UINT128 %}
+    {% for d in DATA128 %}
+        {% set _ = DATA.append(d) %}
+    {% endfor %}
+{% endif %}
+{% set NAMES = [] %}{% for d in DATA %}{% set _ = NAMES.append(d[0]) %}{% endfor %}
+{% set NAMESTYPES = [] %}{% for d in DATA %}{% set _ = NAMESTYPES.append((d[0], d[1])) %}{% endfor %}
 {% set PREFIXES = [("", ""), ("c", ""), ("", "c"), ("c", "c")] %}
+{% macro PVALUE(var, prefix) %}
+    {% if prefix == "" -%}
+        {{var}}
+    {%- else -%}
+        ckd_value({{var}})
+    {%- endif %}
+{%- endmacro %}
+{% macro PORINEXACT(var, prefix) %}
+    {% if prefix == "c" -%}
+        |ckd_inexact({{var}})
+    {%- endif %}
+{%- endmacro %}
 
-#define _ckd_static  static inline
+{% if ONLYSAMETYPES %}
+#define _ckd_ONLYSAMETYPES
+{% endif %}
+
+#ifdef __SIZEOF_INT128__
+#ifndef INT128_MAX
+#define INT128_MAX   ((__int128)(((unsigned __int128) 1 << ((__SIZEOF_INT128__ * __CHAR_BIT__) - 1)) - 1))
+#endif
+#ifndef INT128_MIN
+#define INT128_MIN   (-INT128_MAX - 1)
+#endif
+#ifndef UINT128_MAX
+#define UINT128_MAX  ((2 * (unsigned __int128) INT128_MAX) + 1)
+#endif
+#endif // __SIZEOF_INT128__
+
+#define _ckd_static     static inline
+#if __GNUC__
+#define _ckd_funcconst  _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
+#elif __STDC_VERSION__ >  20230000L
+#define _ckd_funcconst  _ckd_static [[__nodiscard__]]
+#else
+#define _ckd_funcconst _ckd_static
+#endif
 
 #define ckd_inexact(x)  ((x)._ineXact)
 #define ckd_value(x)    ((x)._vaLue)
@@ -36,7 +91,7 @@ import sys; from jinja2 import Template; outf = open(sys.argv[1], 'w') if len(sy
 // ]]]
 // Type specific [[[
 
-{% for N, T, MAX, MIN in data %}
+{% for N, T, DETECT, MAX, MIN in DATA %}
 
 /// @brief The type to store value with inexact information.
 typedef struct {
@@ -46,40 +101,30 @@ typedef struct {
     bool _ineXact;
 } ckd_{{N}}_t;
 
-typedef {{T}} _ckd_type_{{N}};
-typedef ckd_{{N}}_t _ckd_type_c{{N}};
+{# Generic types with N suffix used for templating #}
+#define _ckd_type_{{N}}  {{T}}
+#define _ckd_type_c{{N}} ckd_{{N}}_t
 
-/// @define ckd_mk_{{N}}_t
 /// @param value to hold
 /// @param inexact be inexact or not
 /// @brief Constructs a ckd_{{N}}_t type that holds {{T}} variable type.
-#define ckd_mk_{{N}}_t(value, inexact)  (ckd_{{N}}_t){value, inexact}
+_ckd_funcconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool inexact) {
+    return (ckd_{{N}}_t){value, inexact};
+}
 
 #define _ckd_max_{{N}}  ({{MAX}})
 #define _ckd_min_{{N}}  ({{MIN}})
-#define _ckd_issigned_{{N}}  (_ckd_min_{{N}} == 0)
-
-_ckd_static {{T}} _ckd_value_{{N}}({{T}} a) { return a; }
-_ckd_static {{T}} _ckd_value_c{{N}}(ckd_{{N}}_t a) { return ckd_value(a); }
-_ckd_static {{T}} _ckd_inexact_{{N}}({{T}} a) { return 0; }
-_ckd_static {{T}} _ckd_inexact_c{{N}}(ckd_{{N}}_t a) { return ckd_inexact(a); }
-#define _ckd_v_{{N}}(a)  _Generic((a), \
-        {{T}}: _ckd_value_{{N}}, \
-        ckd_{{N}}_t: _ckd_value_c{{N}})(a)
-#define _ckd_ine_{{N}}(a)  _Generic((a), \
-        {{T}}: _ckd_inexact_{{N}}, \
-        ckd_{{N}}_t: _ckd_inexact_c{{N}})(a)
 
 {% endfor %}
 
 // ]]]
 // Type specific operation [[[
 
-{% for N, T, _, _ in data %}
+{% for N, T in NAMESTYPES %}
 {% set ISSIGNED = MIN != "0" %}
-{% for OP in ops %}
+{% for OP in OPS %}
 
-_ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) {
+_ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) {
     const {{T}} max = _ckd_max_{{N}}; (void)max;
     const {{T}} min = _ckd_min_{{N}}; (void)min;
 {#
@@ -87,23 +132,25 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) {
     I have __not__ implemented overflow semantics, in the below code
     I only _check_ if overflow _has happened_. So compiler can still optimize
     the calculation itself as overflowing signed operations result in undefined behavior.
+
+    Based on:
+        https://stackoverflow.com/q/3944505/9072753
+        https://codereview.stackexchange.com/questions/93687/test-if-arithmetic-OPeration-will-cause-undefined-behavior/93699#93699
+        https://stackoverflow.com/a/6472982/9072753
 #}
 {% macro op_add_signed() %}
-    // https://stackoverflow.com/q/3944505/9072753
     *r = a + b;
     return (a < 0) ? (b < min - a) : (b > max - a);
 {% endmacro %}
 {% macro op_add_unsigned() %}
-    // https://stackoverflow.com/a/6472982/9072753
     return *r = a + b, *r < (a | b);
 {% endmacro %}
 {% macro op_sub_signed() %}
-    // https://codereview.stackexchange.com/questions/93687/test-if-arithmetic-OPeration-will-cause-undefined-behavior/93699#93699
     *r = a - b;
     return (b < 0) ? (a > max + b) : (a < min + b);
 {% endmacro %}
 {% macro op_sub_unsigned() %}
-    // This is I think plainly wrong.
+{# This is I think plainly wrong. #}
     *r = a - b;
     return a < min + b;
 {% endmacro %}
@@ -135,7 +182,11 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) {
 {% endmacro %}
 {% macro op_div() %}
     {# both signed and unsigned #}
+    {% if "int128" not in N %}
     #if _ckd_min_{{N}} != 0 && _ckd_min_{{N}} < -_ckd_max_{{N}}
+    {% else %}
+    #if {{ N == "int128" }}
+    {% endif %}
         if (a == min && b == -1) {
             return *r = 0, 1;
         }
@@ -166,63 +217,62 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) {
 {% endif %}{# OP == "div" -#}
 }
 
-_ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}({{T}} *r, {{T}} a, {{T}} b) {
-    return _ckd_{{OP}}_3_{{N}}_{{N}}_in(r, a, b);
-}
-_ckd_static bool _ckd_{{OP}}_3_{{N}}_c{{N}}({{T}} *r, {{T}} a, ckd_{{N}}_t b) {
-    return _ckd_{{OP}}_3_{{N}}_{{N}}(r, a, ckd_value(b)) | ckd_inexact(b);
-}
-_ckd_static bool _ckd_{{OP}}_3_c{{N}}_{{N}}({{T}} *r, ckd_{{N}}_t a, {{T}} b) {
-    return _ckd_{{OP}}_3_{{N}}_{{N}}(r, ckd_value(a), b) | ckd_inexact(a);
-}
-_ckd_static bool _ckd_{{OP}}_3_c{{N}}_c{{N}}({{T}} *r, ckd_{{N}}_t a, ckd_{{N}}_t b) {
-    return _ckd_{{OP}}_3_{{N}}_{{N}}(r, ckd_value(a), ckd_value(b)) | ckd_inexact(a) | ckd_inexact(b);
-}
-
-{% for P1, P2 in PREFIXES %}
-    {% set M1 = P1 ~ N %}
-    {% set M2 = P2 ~ N %}
-_ckd_static ckd_{{N}}_t _ckd_{{OP}}_2_{{M1}}_{{M2}}(_ckd_type_{{M1}} a, _ckd_type_{{M2}} b) {
-    ckd_{{N}}_t r; r._ineXact = _ckd_{{OP}}_3_{{M1}}_{{M2}}(&r._vaLue, a, b); return r;
-}
-{% endfor %}{# foreach prefixes #}
-{% endfor %}{# foreach ops #}
-{% endfor %}{# foreach data #}
+{% endfor %}{# foreach OPS #}
+{% endfor %}{# foreach DATA #}
 
 // ]]]
 // Each type with every type operations [[[
 
+{% macro check_range_in(var, NR) -%}
+    | ( {{var}} < _ckd_min_{{NR}} ) | ( {{var}} > _ckd_max_{{NR}} )
+{%- endmacro %}
+{% macro check_range(P1, P2, N1, N2, NR) %}
+    {% if NR != N1 %}
+        {% set var = PVALUE("a", P1) %}
+        {{- check_range_in(var, NR) -}}
+    {% endif %}
+    {% if NR != N2 %}
+        {% set var = PVALUE("b", P2) %}
+        {{- check_range_in(var, NR) -}}
+    {% endif %}
+{%- endmacro %}
 {% macro name_to_name(OP, N1, N2, NR) %}
 // Operation {{OP}} on {{N1}} and {{N2}} -> {{NR}}
     {% for P1, P2 in PREFIXES %}
-        {% set M1 = P1 ~ N1 %}
-        {% set M2 = P2 ~ N2 %}
-_ckd_static bool _ckd_{{OP}}_3_{{M1}}_{{M2}}(_ckd_type_{{NR}} *r, _ckd_type_{{M1}} a, _ckd_type_{{M2}} b) {
-    return _ckd_{{OP}}_3_{{NR}}_{{NR}}(r, _ckd_v_{{N1}}(a), _ckd_v_{{N2}}(b)) | _ckd_ine_{{N1}}(a) | _ckd_ine_{{N2}}(b);
+_ckd_static bool _ckd_{{OP}}_3_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_type_{{NR}} *r, _ckd_type_{{P1}}{{N1}} a, _ckd_type_{{P2}}{{N2}} b) {
+    {% if N1 == N2 and N2 == NR and P1 == "" and P2 == "" %}
+    {# This is the basic, basic case -#}
+    return _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}}_in(r, a, b);
+    {% else %}
+    return _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}}(r, {{PVALUE("a", P1)}}, {{PVALUE("b", P2)}})
+        {{- PORINEXACT("a",P1) -}}{{- PORINEXACT("b",P2) -}}{{- check_range(P1, P2, N1, N2, NR) -}} ;
+    {% endif %}
 }
-_ckd_static _ckd_type_c{{NR}} _ckd_{{OP}}_2_{{M1}}_{{M2}}(_ckd_type_{{M1}} a, _ckd_type_{{M2}} b) {
-    return _ckd_{{OP}}_2_c{{NR}}_c{{NR}}(
-        ckd_mk_{{NR}}_t(_ckd_v_{{N1}}(a), _ckd_ine_{{N1}}(a)),
-        ckd_mk_{{NR}}_t(_ckd_v_{{N2}}(b), _ckd_ine_{{N2}}(b)));
+_ckd_funcconst ckd_{{NR}}_t _ckd_{{OP}}_2_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_type_{{P1}}{{N1}} a, _ckd_type_{{P2}}{{N2}} b) {
+    ckd_{{NR}}_t r; r._ineXact = _ckd_{{OP}}_3_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(&r._vaLue, a, b); return r;
 }
     {% endfor %}
 {% endmacro %}
 
-{% for OP in ops %}
-    {% for N1, _, _, _ in data %}
-        {% set N1IDX = loop.index %}
-        {% for N2, _, _, _ in data %}
-            {% if N1 != N2 %}
-                {% set N2IDX = loop.index %}
-                {% set NR = N1 %}
-                {% if N1IDX < N2IDX %}
-                    {% set NR = N2 %}
+
+{% for OP in OPS %}
+    {% for N1 in NAMES %}
+        {{ name_to_name(OP, N1, N1, N1) }}
+    {% endfor %}
+{% endfor %}
+{% if not ONLYSAMETYPES %}
+{% for OP in OPS %}
+    {% for N1 in NAMES %}
+        {% for N2 in NAMES %}
+            {% for NR in NAMES %}
+                {% if N1 != N2 or N1 != NR %}
+                    {{- name_to_name(OP, N1, N2, NR) -}}
                 {% endif %}
-                {{- name_to_name(OP, N1, N2, NR) -}}
-            {% endif %}
+            {% endfor %}
         {% endfor %}
     {% endfor %}
 {% endfor %}
+{% endif %}
 
 // ]]]
 // Generic macros implementation [[[
@@ -234,45 +284,72 @@ void _ckd_invalid(struct _ckd_invalid_);
 " %}
 {# #}
 {% macro generics(end="") %}
-{% for N, T, MAX, MIN in data %}
-{{ caller(T, N) }}{{ macrocontnl if not loop.last else end }}
+{% for N, T in NAMESTYPES %}
+{{ caller(N, T) }}{{ macrocontnl if not loop.last else end }}
 {%- endfor %}
 {% endmacro %}
 
 #define ckd_mk(value, inexact)  _Generic((value), \
-{% call(T, N) generics() %}
+{% call(N, T) generics() %}
     {{T}}: ckd_mk_{{N}}_t
 {%- endcall %} \
     )(value, inexact)
 
-{% macro ingen(OP, CNT) %}
-    {% call(T, N) generics() -%}
-_ckd_type_{{N}}: \
+{% macro ingen_in(OP, CNT, NRBASE, P1, N1, N1IDX) %}
+    {% for N2 in NAMES %}
+        {% set N2IDX = loop.index %}
+        {% set NR = NRBASE %}
+        {% if NR == "" %}
+            {% set NR = N1 %}
+            {% if N1IDX < N2IDX %}
+                {% set NR = N2 %}
+            {% endif %}
+        {% endif %}
+_ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{N1}}_{{N2}}, \
+_ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{N1}}_c{{N2}}{{ macrocontnl if not loop.last else end }}
+    {%- endfor %}
+{% endmacro %}
+
+{% macro ingen(OP, CNT, NRBASE="") %}
+    {% for N1, T1 in NAMESTYPES %}
+        {% set N1IDX = loop.index %}
+        {% if not ONLYSAMETYPES %}
+_ckd_type_{{N1}}: \
     _Generic((b), \
-    {% for N2, _, _, _ in data %}
-    _ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{N}}_{{N2}}, \
-    _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{N}}_c{{N2}}, \
-    {% endfor %}
+    {{ ingen_in(OP, CNT, NRBASE, "", N1, N1IDX) | indent(4) }}, \
     default: _ckd_invalid), \
-_ckd_type_c{{N}}: \
+_ckd_type_c{{N1}}: \
     _Generic((b), \
-    {% for N2, _, _, _ in data %}
-    _ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_c{{N}}_{{N2}}, \
-    _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_c{{N}}_c{{N2}}, \
-    {% endfor %}
-    default: _ckd_invalid)            
-    {%- endcall %}
+    {{ ingen_in(OP, CNT, NRBASE, "c", N1, N1IDX) | indent(4) }}, \
+    default: _ckd_invalid){{ macrocontnl }}
+        {%- else %}
+            {% if NRBASE == "" or NRBASE == N1 %}
+                {% set NR = N1 %}
+                {% set N2 = N1 %}
+_ckd_type_{{N1}}: \
+    _Generic((b), \
+    _ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_{{N2}}, \
+    _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_c{{N2}}, \
+    default: _ckd_invalid), \
+_ckd_type_c{{N1}}: \
+    _Generic((b), \
+    _ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_{{N2}}, \
+    _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_c{{N2}}, \
+    default: _ckd_invalid){{ macrocontnl }}
+            {%- endif %}
+        {% endif %}
+    {%- endfor %}
 {% endmacro %}
     
-{% for OP in ops %}
+{% for OP in OPS %}
 #define _ckd_{{OP}}_2(a, b)  _Generic((a), \
-    {{ ingen(OP, 2) | indent(4) }}, \
+    {{ ingen(OP, 2, "") | indent(4) }}      \
     default: _ckd_invalid)(a, b)
 #define _ckd_{{OP}}_3(r, a, b)  _Generic((r), \
-{% call(T, N) generics() %}
+{% call(N, T) generics() %}
     {{T}} *: \
         _Generic((a), \
-        {{ ingen(OP, 3) | indent(8) }}, \
+        {{ ingen(OP, 3, N) | indent(8) }}        \
         default: _ckd_invalid)
 {%- endcall %}, \
     default: _ckd_invalid)(r, a, b)
@@ -287,7 +364,20 @@ _ckd_type_c{{N}}: \
 #endif /* CKDINT_H_ */
 
 // ]]]
-// vim: ft=c tabstop=4 expandtab shiftwidth=4 softtabstop=4 autoindent foldmethod=marker foldmarker=[[[,]]]
-''', autoescape=False, trim_blocks=True, lstrip_blocks=True).render(), file=outf)
+'''
 
+# The first line of this file is just one line, so that
+# jinja2 reports errors like 2 lines below real error.
+# It helps development.
+import sys
+from jinja2 import Template
+
+HAVE_UINT128 = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+outf = open(sys.argv[2], "w") if len(sys.argv) > 2 else sys.stdout
+print(
+    Template(str, autoescape=False, trim_blocks=True, lstrip_blocks=True).render(
+        HAVE_UINT128=HAVE_UINT128
+    ),
+    file=outf,
+)
 
