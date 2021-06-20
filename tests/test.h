@@ -1,4 +1,9 @@
+
+#ifdef CKD__SMALL
+#include <ckdint_small.h>
+#else
 #include <ckdint.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

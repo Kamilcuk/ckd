@@ -16,8 +16,6 @@ str = r'''
 #include <stdint.h>
 #include <limits.h>
 
-{# Set this to 0 to compile only same types operations, like ckd_add(int*, int, int) -#}
-{% set ONLYSAMETYPES = 0 %}
 {# -#}
 {% set OPS = [ "add", "sub", "mul", "div" ] %}
 {# DATA format: name type detect max min #}
@@ -61,7 +59,7 @@ str = r'''
 {%- endmacro %}
 
 {% if ONLYSAMETYPES %}
-#define _ckd_ONLYSAMETYPES
+#define _ckd_ONLYSAMETYPES  1
 {% endif %}
 
 #ifdef __SIZEOF_INT128__
@@ -201,19 +199,19 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) 
     return __builtin_{{OP}}_overflow(a, b, r);
 #else // __GNUC__
 {% if OP == "add" and ISSIGNED %}
-    {{ op_add_signed() }} 
+    {{- op_add_signed() -}} 
 {% elif OP == "add" and not ISSIGNED %}
-    {{ op_add_unsigned() }} 
+    {{- op_add_unsigned() -}} 
 {% elif OP == "sub" and ISSIGNED %}
-    {{ op_sub_signed() }} 
+    {{- op_sub_signed() -}} 
 {% elif OP == "sub" and not ISSIGNED %}
-    {{ op_sub_unsigned() }} 
+    {{- op_sub_unsigned() -}} 
 {% elif OP == "mul" %}
-    {{ op_mul() }} 
+    {{- op_mul() -}} 
 {% endif %}
 #endif // __GNUC__
 {% else %}{# OP != "div" #}
-    {{ op_div() }} 
+    {{- op_div() -}} 
 {% endif %}{# OP == "div" -#}
 }
 
@@ -241,7 +239,7 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) 
     {% for P1, P2 in PREFIXES %}
 _ckd_static bool _ckd_{{OP}}_3_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_type_{{NR}} *r, _ckd_type_{{P1}}{{N1}} a, _ckd_type_{{P2}}{{N2}} b) {
     {% if N1 == N2 and N2 == NR and P1 == "" and P2 == "" %}
-    {# This is the basic, basic case -#}
+    {# This is the basic, basic case #}
     return _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}}_in(r, a, b);
     {% else %}
     return _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}}(r, {{PVALUE("a", P1)}}, {{PVALUE("b", P2)}})
@@ -257,7 +255,7 @@ _ckd_funcconst ckd_{{NR}}_t _ckd_{{OP}}_2_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_
 
 {% for OP in OPS %}
     {% for N1 in NAMES %}
-        {{ name_to_name(OP, N1, N1, N1) }}
+        {{- name_to_name(OP, N1, N1, N1) -}}
     {% endfor %}
 {% endfor %}
 {% if not ONLYSAMETYPES %}
@@ -328,29 +326,27 @@ _ckd_type_c{{N1}}: \
                 {% set N2 = N1 %}
 _ckd_type_{{N1}}: \
     _Generic((b), \
-    _ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_{{N2}}, \
     _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_c{{N2}}, \
-    default: _ckd_invalid), \
+    default: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_{{N2}}), \
 _ckd_type_c{{N1}}: \
     _Generic((b), \
-    _ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_{{N2}}, \
     _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_c{{N2}}, \
-    default: _ckd_invalid){{ macrocontnl }}
+    default:  _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_{{N2}}){{ macrocontnl }}
             {%- endif %}
         {% endif %}
     {%- endfor %}
-{% endmacro %}
+{%- endmacro %}
     
 {% for OP in OPS %}
 #define _ckd_{{OP}}_2(a, b)  _Generic((a), \
-    {{ ingen(OP, 2, "") | indent(4) }}      \
-    default: _ckd_invalid)(a, b)
+    {{ ingen(OP, 2, "") | indent(4)
+}}    default: _ckd_invalid)(a, b)
 #define _ckd_{{OP}}_3(r, a, b)  _Generic((r), \
 {% call(N, T) generics() %}
     {{T}} *: \
         _Generic((a), \
-        {{ ingen(OP, 3, N) | indent(8) }}        \
-        default: _ckd_invalid)
+        {{ ingen(OP, 3, N) | indent(8)
+}}        default: _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}})
 {%- endcall %}, \
     default: _ckd_invalid)(r, a, b)
 #define _ckd_{{OP}}_N(_2,_3,N,...) _ckd_{{OP}}_##N
@@ -372,10 +368,13 @@ _ckd_type_c{{N1}}: \
 import sys
 from jinja2 import Template
 
-HAVE_UINT128 = int(sys.argv[1]) if len(sys.argv) > 1 else 0
-outf = open(sys.argv[2], "w") if len(sys.argv) > 2 else sys.stdout
+HAVE_UINT128 = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
+# Set this to 0 to compile only same types operations, like ckd_add(int*, int, int)
+ONLYSAMETYPES = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
+outf = open(sys.argv.pop(1), "w") if len(sys.argv) > 1 else sys.stdout
 print(
     Template(str, autoescape=False, trim_blocks=True, lstrip_blocks=True).render(
+        ONLYSAMETYPES=ONLYSAMETYPES,
         HAVE_UINT128=HAVE_UINT128
     ),
     file=outf,

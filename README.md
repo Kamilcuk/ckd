@@ -105,20 +105,21 @@ standardize existing behaviors, and macros `__builtin_*_overflow` is
 just a single compiler extension. It could make a semi-good library, tho.
 
 The resulting header file has over 200'000 lines. A short C files takes a
-log of time to compile. While I see maybe a way to shorten it a bit, it's
-still _very big_ and I do not believe such library is feasible to use.
+lot of time to compile. While I see maybe a way to shorten it a bit, maybe to 100000,
+I believe it will still be _very big_ and I do not believe such library is
+in any way feasible to use.
 
 A version with just all three same types (ie. `ckd_add(int *, int, int)`
-- all 3 types the same) results in a header file with about ~3500 lines
-and is totally fine and fun to use. Such library is actually OK. But I do not
+all 3 types of arguments are the same) results in a header file of about ~3500 lines.
+Such a header is totally fine and fun to use, and in such case this library is OK. But I do not
 believe N->M->K relations are ever needed (ie. `ckd_add(N *, M, K)` where `N`
 `M` `K` are _any_ types). Such relations are just bloat - single types
 are enough.
 
-Because typedefs from standard like `size_t` or `ptrdiff_t` or `uint8_t` 
+Because usually typedefs from standard like `size_t` or `ptrdiff_t` or `uint8_t` 
 alias normal fundamental types and because you can't put two same types
-inside a `_Generic` association list, I do believe with the current
-features of C language it's not possible to implement the specification
+inside a `_Generic` association list, I do not believe with the current
+features of C language that it is possible to implement the specification
 as presented in the paper. In particular, `ckd_add((size_t)1, (size_t)1)`
 _has to_ return a fundamental type like `ckd_ullong_t`. Or, one could do
 `typedef ckd_ullong_t ckd_size_t` knowing that `size_t` and `unsigned long long`
