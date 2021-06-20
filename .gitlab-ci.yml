@@ -1,0 +1,7 @@
+
+testme:
+  image: archlinux
+  script:
+    - pacman -Sy --noconfirm cmake python-jinja gcc make
+    - make
+
