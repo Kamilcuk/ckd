@@ -1,7 +1,7 @@
 all: build
 	( cd _build && ctest -V )
 see: config
-	cmake --build _build --target include/ckdint.h
+	cmake --build _build --target ckdint.h
 	tail -n 160 _build/include/ckdint.h
 	grep -C20 AA _build/include/ckdint.h || true 
 config:

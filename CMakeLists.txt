@@ -17,6 +17,7 @@ add_custom_command(
 		${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py 
 		${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 )
+add_custom_target(ckdint.h DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h)
 add_library(${PROJECT_NAME} INTERFACE
 	${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 )
