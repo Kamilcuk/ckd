@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-str = r'''
+templatestr = r'''
 // vim: ft=c tabstop=4 expandtab shiftwidth=4 softtabstop=4 autoindent foldmethod=marker foldmarker=[[[,]]]
 /*
  * @file
@@ -252,6 +252,17 @@ _ckd_funcconst ckd_{{NR}}_t _ckd_{{OP}}_2_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_
     {% endfor %}
 {% endmacro %}
 
+{% set RET = namespace() %}
+{% macro only_smaller(N1, N1IDX, N2, N2IDX, NR, NRIDX) %}
+    {% if (N1 is NISSIGNED) == (NR is NISSIGNED) and N1IDX < NRIDX %}
+        {% set N1 = NR %}
+    {% endif %}
+    {% if (N2 is NISSIGNED) == (NR is NISSIGNED) and N2IDX < NRIDX %}
+        {% set N2 = NR %}
+    {% endif %}
+    {% set RET.N1 = N1 %}
+    {% set RET.N2 = N2 %}
+{% endmacro %}
 
 {% for OP in OPS %}
     {% for N1 in NAMES %}
@@ -261,9 +272,13 @@ _ckd_funcconst ckd_{{NR}}_t _ckd_{{OP}}_2_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_
 {% if not ONLYSAMETYPES %}
 {% for OP in OPS %}
     {% for N1 in NAMES %}
+        {% set N1IDX = loop.index %}
         {% for N2 in NAMES %}
+            {% set N2IDX = loop.index %}
             {% for NR in NAMES %}
-                {% if N1 != N2 or N1 != NR %}
+                {% set NRIDX = loop.index %}
+                {{- only_smaller(N1, N1IDX, N2, N2IDX, NR, NRIDX) -}}
+                {% if RET.N1 == N1 and RET.N2 == N2 and (N1 != N2 or N1 != NR) %}
                     {{- name_to_name(OP, N1, N2, NR) -}}
                 {% endif %}
             {% endfor %}
@@ -282,46 +297,55 @@ void _ckd_invalid(struct _ckd_invalid_);
 " %}
 {# #}
 {% macro generics(end="") %}
-{% for N, T in NAMESTYPES %}
-{{ caller(N, T) }}{{ macrocontnl if not loop.last else end }}
-{%- endfor %}
+    {% for N, T in NAMESTYPES %}
+        {% set NIDX = loop.index %}
+{{ caller(N, T, NIDX) }}{{ macrocontnl if not loop.last else end }}
+    {%- endfor %}
 {% endmacro %}
 
 #define ckd_mk(value, inexact)  _Generic((value), \
-{% call(N, T) generics() %}
+{% call(N, T, NIDX) generics() %}
     {{T}}: ckd_mk_{{N}}_t
 {%- endcall %} \
     )(value, inexact)
 
-{% macro ingen_in(OP, CNT, NRBASE, P1, N1, N1IDX) %}
+{% macro ingen_in(OP, CNT, P1, N1, N1IDX, NR, NRIDX) %}
     {% for N2 in NAMES %}
         {% set N2IDX = loop.index %}
-        {% set NR = NRBASE %}
-        {% if NR == "" %}
+        {# #}
+        {# handle gen2 - determine NR type to be the bigger type #}
+        {% if CNT == 2 %}
             {% set NR = N1 %}
+            {% set NRIDX = N1IDX %}
             {% if N1IDX < N2IDX %}
                 {% set NR = N2 %}
+                {% set NRIDX = N2IDX %}
             {% endif %}
         {% endif %}
-_ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{N1}}_{{N2}}, \
-_ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{N1}}_c{{N2}}{{ macrocontnl if not loop.last else end }}
+        {# #}
+        {# handle OP_3 smaller types exclusion #}
+        {{- only_smaller(N1, N1IDX, N2, N2IDX, NR, NRIDX) -}}
+        {# #}
+_ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{RET.N1}}_{{RET.N2}}, \
+_ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{RET.N1}}_c{{RET.N2}}{{ macrocontnl if not loop.last else end }}
     {%- endfor %}
 {% endmacro %}
 
-{% macro ingen(OP, CNT, NRBASE="") %}
+{% macro ingen(OP, CNT, NR="", NRIDX=-1) %}
     {% for N1, T1 in NAMESTYPES %}
         {% set N1IDX = loop.index %}
         {% if not ONLYSAMETYPES %}
 _ckd_type_{{N1}}: \
     _Generic((b), \
-    {{ ingen_in(OP, CNT, NRBASE, "", N1, N1IDX) | indent(4) }}, \
+    {{ ingen_in(OP, CNT, "", N1, N1IDX, NR, NRIDX) | indent(4) }}, \
     default: _ckd_invalid), \
 _ckd_type_c{{N1}}: \
     _Generic((b), \
-    {{ ingen_in(OP, CNT, NRBASE, "c", N1, N1IDX) | indent(4) }}, \
+    {{ ingen_in(OP, CNT, "c", N1, N1IDX, NR, NRIDX) | indent(4) }}, \
     default: _ckd_invalid){{ macrocontnl }}
         {%- else %}
-            {% if NRBASE == "" or NRBASE == N1 %}
+            {# If we got called from OP_2 or the types are the same #}
+            {% if NRIDX == -1 or NR == N1 %}
                 {% set NR = N1 %}
                 {% set N2 = N1 %}
 _ckd_type_{{N1}}: \
@@ -339,14 +363,14 @@ _ckd_type_c{{N1}}: \
     
 {% for OP in OPS %}
 #define _ckd_{{OP}}_2(a, b)  _Generic((a), \
-    {{ ingen(OP, 2, "") | indent(4)
+    {{ ingen(OP, 2) | indent(4)
 }}    default: _ckd_invalid)(a, b)
 #define _ckd_{{OP}}_3(r, a, b)  _Generic((r), \
-{% call(N, T) generics() %}
-    {{T}} *: \
+{% call(NR, TR, NRIDX) generics() %}
+    {{TR}} *: \
         _Generic((a), \
-        {{ ingen(OP, 3, N) | indent(8)
-}}        default: _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}})
+        {{ ingen(OP, 3, NR, NRIDX) | indent(8)
+}}        default: _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}})
 {%- endcall %}, \
     default: _ckd_invalid)(r, a, b)
 #define _ckd_{{OP}}_N(_2,_3,N,...) _ckd_{{OP}}_##N
@@ -361,19 +385,56 @@ _ckd_type_c{{N1}}: \
 
 // ]]]
 '''
-
+# Python [[[
 # The first line of this file is just one line, so that
 # jinja2 reports errors like 2 lines below real error.
 # It helps development.
+# This script takes 3 arguments:
+#   HAVE_UINT128 - do we have uint128 or not
+#   ONLYSAMETYPES - Generate shorter version and handle only same types in macros.
+#   output_file - the output file to write the output to.
+# If no arguments are given, it just writes to stdout.
 import sys
-from jinja2 import Template
+import re
+from jinja2 import Template, Environment, BaseLoader
 
 HAVE_UINT128 = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
 # Set this to 0 to compile only same types operations, like ckd_add(int*, int, int)
 ONLYSAMETYPES = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
 outf = open(sys.argv.pop(1), "w") if len(sys.argv) > 1 else sys.stdout
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+# https://groups.google.com/g/pocoo-libs/c/3yZl8vHJ9fI
+# https://stackoverflow.com/questions/25449879/embed-custom-filter-definition-into-jinja2-template
+def get_re_flags(flagstr):
+    reflags = 0
+    if flagstr:
+        if flagstr.find("i") > -1: reflags |= re.IGNORECASE
+        if flagstr.find("l") > -1: reflags |= re.LOCALE
+        if flagstr.find("m") > -1: reflags |= re.MULTILINE
+        if flagstr.find("s") > -1: reflags |= re.DOTALL
+        if flagstr.find("u") > -1: reflags |= re.UNICODE
+        if flagstr.find("x") > -1: reflags |= re.VERBOSE
+    return reflags
+def is_re_match(value, regex, flagstr=None):
+    reflags = get_re_flags(flagstr)
+    return not not re.search(regex, value, reflags)
+def NISSIGNED(s):
+    return isinstance(s, str) and len(s) > 0 and s[0] == "u"
+
+env = Environment(
+    loader=BaseLoader,
+    autoescape=False,
+    trim_blocks=True,
+    lstrip_blocks=True
+)
+env.tests['is_re_match']=is_re_match
+env.tests['NISSIGNED']=NISSIGNED
+
 print(
-    Template(str, autoescape=False, trim_blocks=True, lstrip_blocks=True).render(
+    env.from_string(templatestr).render(
         ONLYSAMETYPES=ONLYSAMETYPES,
         HAVE_UINT128=HAVE_UINT128
     ),
