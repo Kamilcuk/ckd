@@ -36,7 +36,8 @@ endmacro()
 work(0 "")
 work(1 "_small")
 
-add_library(${PROJECT_NAME} INTERFACE
+add_library(${PROJECT_NAME} INTERFACE)
+target_sources(${PROJECT_NAME} INTERFACE
 	${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 	${CMAKE_CURRENT_BINARY_DIR}/include/ckdint_small.h
 )
@@ -57,4 +58,10 @@ if(BUILD_TESTING)
 		endforeach()
 	endforeach()
 endif()
+
+install(FILES 
+		${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
+		${CMAKE_CURRENT_BINARY_DIR}/include/ckdint_small.h
+	DESTINATION include
+)
 
