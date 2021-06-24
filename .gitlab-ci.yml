@@ -1,7 +1,15 @@
-
+---
 testme:
   image: archlinux
   script:
     - pacman -Sy --noconfirm cmake python-jinja gcc make
     - make
 
+ceinstall:
+  stage: deploy
+  tags: [ce@perun]
+  script:
+    - sudo apt-get install -y python3-jinja2
+    - cmake -S. -B_build -GNinja
+    - cmake --build _build
+    - sudo cmake --install _build
