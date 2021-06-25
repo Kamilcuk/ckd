@@ -8,6 +8,8 @@ http://www.open-std.org/jtc1/sc22/wg14/www/docs/n2683.pdf
 and I wanted to explore Jinja2 templating system in C language and I
 decided to implement the library.
 
+[Godbolt link][1]
+
 ## What works?
 
 The library provides the following:
@@ -131,3 +133,5 @@ are the same type - for that, a library implementor has to have a
 Written by Kamil Cukrowski 2021
 Licensed jointly under Beerware License and MIT License.
 
+
+[1]: https://ce.karta.dyzio.pl/#g:!((g:!((g:!((g:!((h:codeEditor,i:(fontScale:14,fontUsePx:'0',j:1,lang:___c,selection:(endColumn:1,endLineNumber:10,positionColumn:1,positionLineNumber:10,selectionStartColumn:1,selectionStartLineNumber:10,startColumn:1,startLineNumber:10),source:'%23include+%3Cckdint_small.h%3E%0A%23include+%3Cstdio.h%3E%0A%0Aint+main()+%7B%0A++++printf(%22%25d%5Cn%22,+ckd_value(ckd_mul(ckd_add(1,+1),+2)))%3B%0A++++int+a%3B%0A++++bool+b+%3D+ckd_div(%26a,+ckd_mul(ckd_mul(1,+2),+4),+2)%3B%0A++++printf(%221+*+2+*+4+/+2+%3D+%25d%5Cn%22,+a)%3B%0A%7D%0A'),l:'5',n:'0',o:'C+source+%231',t:'0')),k:50,l:'4',n:'0',o:'',s:0,t:'0'),(g:!((h:compiler,i:(compiler:gdefault,filters:(b:'0',binary:'1',commentOnly:'0',demangle:'0',directives:'0',execute:'0',intel:'0',libraryCode:'0',trim:'1'),fontScale:14,fontUsePx:'0',j:1,lang:___c,libs:!(),options:'-O',selection:(endColumn:1,endLineNumber:1,positionColumn:1,positionLineNumber:1,selectionStartColumn:1,selectionStartLineNumber:1,startColumn:1,startLineNumber:1),source:1),l:'5',n:'0',o:'gcc+default+(10)+(Editor+%231,+Compiler+%231)+C',t:'0')),k:50,l:'4',n:'0',o:'',s:0,t:'0')),l:'2',m:50,n:'0',o:'',t:'0'),(g:!((h:output,i:(compiler:1,editor:1,fontScale:14,fontUsePx:'0',wrap:'1'),l:'5',n:'0',o:'%231+with+gcc+default+(10)',t:'0')),header:(),l:'4',m:50,n:'0',o:'',s:0,t:'0')),l:'3',n:'0',o:'',t:'0')),version:4
