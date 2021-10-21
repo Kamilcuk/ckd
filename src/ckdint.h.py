@@ -339,7 +339,6 @@ from jinja2 import Template, Environment, BaseLoader
 HAVE_UINT128 = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
 # Set this to 0 to compile only same types operations, like ckd_add(int*, int, int)
 outfile = sys.argv.pop(1) if len(sys.argv) > 1 else None
-outf = open(outfile, "w") if outfile else sys.stdout
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -373,6 +372,8 @@ env.tests['NISSIGNED']=NISSIGNED
 
 if outfile:
     os.makedirs(os.path.dirname(outfile), exist_ok=True)
+
+outf = open(outfile, "w") if outfile else sys.stdout
 
 print(
     env.from_string(templatestr).render(

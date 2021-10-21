@@ -1,15 +1,39 @@
 ---
-testme:
-  image: archlinux
-  script:
-    - pacman -Sy --noconfirm cmake python-jinja gcc make
-    - make
+image: registry.gitlab.com/kamcuk/builder
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  CMAKE_BUILD_TYPE: Release
 
-ceinstall:
-  stage: deploy
-  tags: [ce@perun]
+icc_test:
+  tags:
+    - perun
+  image:
+    name: intel/oneapi-hpckit
+    entrypoint: []
+  variables:
+    CC: icc
   script:
-    - sudo apt-get install -y python3-jinja2
-    - cmake -S. -B_build -GNinja
-    - cmake --build _build
-    - sudo cmake --install _build
+    - . /root/.oneapi_env_vars
+    - apt-get update
+    - apt-get install -y python3-jinja2
+    - make test
+
+gcc_test:
+  variables:
+    CC: gcc
+  script:
+    - pacman -Sy --noconfirm python-jinja
+    - make test
+
+clang_test:
+  variables:
+    CC: clang
+  script:
+    - pacman -Sy --noconfirm python-jinja
+    - make test
+
+alpine_test:
+  image: registry.gitlab.com/kamcuk/builder:alpine
+  script:
+    - apk add py3-jinja2
+    - make test
