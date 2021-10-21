@@ -19,7 +19,7 @@ templatestr = r'''
 {# -#}
 {% set OPS = [ "add", "sub", "mul", "div" ] %}
 {# DATA format: name type detect max min #}
-{% set DATA = [
+{% set DATA_STANDARD = [
         ("schar"  ,"signed char"       ,"1"                ,"SCHAR_MAX"  ,"SCHAR_MIN") ,
         ("uchar"  ,"unsigned char"     ,"1"                ,"UCHAR_MAX"  ,"0")         ,
         ("shrt"   ,"short"             ,"1"                ,"SHRT_MAX"   ,"SHRT_MIN")  ,
@@ -37,7 +37,11 @@ templatestr = r'''
         ("uint128","unsigned __int128" ,"__SIZEOF_INT128__","UINT128_MAX","0")         ,
     ]
 %}
+{% set DATA = [] %}
 {% if HAVE_UINT128 %}
+    {% for d in DATA_STANDARD %}
+        {% set _ = DATA.append(d) %}
+    {% endfor %}
     {% for d in DATA128 %}
         {% set _ = DATA.append(d) %}
     {% endfor %}
@@ -45,22 +49,20 @@ templatestr = r'''
 {% set NAMES = [] %}{% for d in DATA %}{% set _ = NAMES.append(d[0]) %}{% endfor %}
 {% set NAMESTYPES = [] %}{% for d in DATA %}{% set _ = NAMESTYPES.append((d[0], d[1])) %}{% endfor %}
 {% set PREFIXES = [("", ""), ("c", ""), ("", "c"), ("c", "c")] %}
-{% macro PVALUE(var, prefix) %}
-    {% if prefix == "" -%}
-        {{var}}
-    {%- else -%}
-        ckd_value({{var}})
-    {%- endif %}
-{%- endmacro %}
-{% macro PORINEXACT(var, prefix) %}
-    {% if prefix == "c" -%}
-        |ckd_inexact({{var}})
-    {%- endif %}
-{%- endmacro %}
 
-{% if ONLYSAMETYPES %}
-#define _ckd_ONLYSAMETYPES  1
-{% endif %}
+{% set macrocontnl = ", \\
+" %}
+{% macro foreach_OP() %}
+    {% for OP in OPS %}
+{{ caller() | replace("$OP", OP) }}
+    {%- endfor %}
+{% endmacro %}
+{% macro foreach_TYPE(inmacro=0, end="") %}
+    {% for N, T in NAMESTYPES %}
+        {% set NIDX = loop.index %}
+{{ caller() | replace("$TYPE", N) }}{% if inmacro %}{{ macrocontnl if not loop.last else end }}{% endif %}
+    {%- endfor %}
+{% endmacro %}
 
 #ifdef __SIZEOF_INT128__
 #ifndef INT128_MAX
@@ -77,37 +79,44 @@ templatestr = r'''
 #define _ckd_static     static inline
 #if __GNUC__
 #define _ckd_funcconst  _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
+#if __GNUC__ >= 10
+#define _ckd_access_w(...)  __attribute__((__access__(__write_only__, __VA_ARGS__)))
+#endif
 #elif __STDC_VERSION__ >  20230000L
 #define _ckd_funcconst  _ckd_static [[__nodiscard__]]
 #else
 #define _ckd_funcconst _ckd_static
 #endif
 
-#define ckd_inexact(x)  ((x)._ineXact)
-#define ckd_value(x)    ((x)._vaLue)
+#ifndef _ckd_access_w
+#define _ckd_access_w(...)  /**/
+#endif
+
+#define ckd_overflow(x)  ((x)._oveRflow)
+#define ckd_value(x)     ((x)._vaLue)
 
 // ]]]
 // Type specific [[[
 
 {% for N, T, DETECT, MAX, MIN in DATA %}
 
-/// @brief The type to store value with inexact information.
+/// @brief The type to store value with overflow information.
 typedef struct {
     /// The stored value.
     {{T}} _vaLue;
-    /// Did overflow occured or not.
-    bool _ineXact;
+    /// Did overflow occured or not?
+    bool _oveRflow;
 } ckd_{{N}}_t;
 
 {# Generic types with N suffix used for templating #}
-#define _ckd_type_{{N}}  {{T}}
-#define _ckd_type_c{{N}} ckd_{{N}}_t
+#define _ckd_{{N}}  {{T}}
+#define _ckd_c{{N}} ckd_{{N}}_t
 
 /// @param value to hold
-/// @param inexact be inexact or not
+/// @param oveflow Overflowed or not
 /// @brief Constructs a ckd_{{N}}_t type that holds {{T}} variable type.
-_ckd_funcconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool inexact) {
-    return (ckd_{{N}}_t){value, inexact};
+_ckd_funcconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool overflow) {
+    return (ckd_{{N}}_t){value, overflow};
 }
 
 #define _ckd_max_{{N}}  ({{MAX}})
@@ -118,13 +127,10 @@ _ckd_funcconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool inexact) {
 // ]]]
 // Type specific operation [[[
 
-{% for N, T in NAMESTYPES %}
+{% for N, T, DETECT, MAX, MIN in DATA %}
 {% set ISSIGNED = MIN != "0" %}
 {% for OP in OPS %}
 
-_ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) {
-    const {{T}} max = _ckd_max_{{N}}; (void)max;
-    const {{T}} min = _ckd_min_{{N}}; (void)min;
 {#
     Operations on integers + checking for overflow.
     I have __not__ implemented overflow semantics, in the below code
@@ -136,49 +142,67 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) 
         https://codereview.stackexchange.com/questions/93687/test-if-arithmetic-OPeration-will-cause-undefined-behavior/93699#93699
         https://stackoverflow.com/a/6472982/9072753
 #}
-{% macro op_add_signed() %}
-    *r = a + b;
-    return (a < 0) ? (b < min - a) : (b > max - a);
-{% endmacro %}
-{% macro op_add_unsigned() %}
-    return *r = a + b, *r < (a | b);
-{% endmacro %}
-{% macro op_sub_signed() %}
-    *r = a - b;
-    return (b < 0) ? (a > max + b) : (a < min + b);
-{% endmacro %}
-{% macro op_sub_unsigned() %}
-{# This is I think plainly wrong. #}
-    *r = a - b;
-    return a < min + b;
-{% endmacro %}
-{% macro op_mul() %}
-    {# both signed and unsigned #}
-    *r = a * b;
+/**
+ * Calculates a {{OP}} b with infinite type width and stores the result in res.
+ * @param res Place to store the result to.
+ * @param a
+ * @param b
+ * @param others Should be locagically OR-ed to the result.
+ * @return If the result is not within range of type {{T}} or others.
+ */
+_ckd_static _ckd_access_w(1)
+bool _ckd_{{OP}}_3_{{N}}({{T}} *res, {{T}} a, {{T}} b, bool others) {
+    const {{T}} max = _ckd_max_{{N}}; (void)max;
+    const {{T}} min = _ckd_min_{{N}}; (void)min;
+    // Stores the result of calculation.
+    {{T}} r;
+    // Stores if the calculation overflowed.
+    bool o = 0;
+    {# Choose the proper operation -#}
+{% if OP != "div" %}{# There is no __buildin_div_* #}
+#if __GNUC__ > 5 && !defined(CKD_DO_NOT_USE_BUILTINS)
+    o = __builtin_{{OP}}_overflow(a, b, &r);
+#else // __GNUC__
+{% if OP == "add" and ISSIGNED %}
+    r = a + b;
+    o = (a < 0) ? (b < min - a) : (b > max - a);
+{% elif OP == "add" and not ISSIGNED %}
+    r = a + b;
+    o = r < (a | b);
+{% elif OP == "sub" and ISSIGNED %}
+    r = a - b;
+    o = (b < 0) ? (a > max + b) : (a < min + b);
+{% elif OP == "sub" and not ISSIGNED %}
+    {#- This is I think plainly wrong. #}
+    r = a - b;
+    o = a < min + b;
+{% elif OP == "mul" %}
+    {#- both signed and unsigned #}
+    r = a * b;
     if (a > 0) {
         if (b > 0) {
             if (a > max / b) { // a positive, b positive
-                return 1;
+                o = 1;
             }
         } else {
             if (b < min / a) { // a positive, b not positive
-                return 1;
+                o = 1;
             }
         }
     } else {
         if (b > 0) {
             if (a < min / b) { // a not positive, b positive
-                return 1;
+                o = 1;
             }
         } else {
             if (a != 0 && b < max / a) { // a not positive, b not positive
-                return 1;
+                o = 1;
             }
         }
     }
-    return 0;
-{% endmacro %}
-{% macro op_div() %}
+{% endif %}
+#endif // __GNUC__
+{% else %}{# OP != "div" #}
     {# both signed and unsigned #}
     {% if "int128" not in N %}
     #if _ckd_min_{{N}} != 0 && _ckd_min_{{N}} < -_ckd_max_{{N}}
@@ -186,106 +210,78 @@ _ckd_static bool _ckd_{{OP}}_3_{{N}}_{{N}}_{{N}}_in({{T}} *r, {{T}} a, {{T}} b) 
     #if {{ N == "int128" }}
     {% endif %}
         if (a == min && b == -1) {
-            return *r = 0, 1;
-        }
+            r = 0;
+            o = 1;
+        } else
     #endif
-    if (b == 0) return *r = 0, 1;
-    return *r = a / b, 0;
-{% endmacro %}
-{# #}
-{# Choose the proper operation #}
-{% if OP != "div" %}{# There is no __buildin_div_* #}
-#if __GNUC__ > 5 && !defined(CKD_DO_NOT_USE_BUILTINS)
-    return __builtin_{{OP}}_overflow(a, b, r);
-#else // __GNUC__
-{% if OP == "add" and ISSIGNED %}
-    {{- op_add_signed() -}} 
-{% elif OP == "add" and not ISSIGNED %}
-    {{- op_add_unsigned() -}} 
-{% elif OP == "sub" and ISSIGNED %}
-    {{- op_sub_signed() -}} 
-{% elif OP == "sub" and not ISSIGNED %}
-    {{- op_sub_unsigned() -}} 
-{% elif OP == "mul" %}
-    {{- op_mul() -}} 
-{% endif %}
-#endif // __GNUC__
-{% else %}{# OP != "div" #}
-    {{- op_div() -}} 
+    if (b == 0) {
+        r = 0;
+        o = 1;
+    } else {
+        r = a / b;
+        o = 0;
+    }
 {% endif %}{# OP == "div" -#}
+    *res = r;
+    return others || o;
+}
+
+/// Wrapper around _ckd_{{OP}}_3_{{N}}.
+_ckd_funcconst _ckd_c{{N}} _ckd_{{OP}}_2_{{N}}({{T}} a, {{T}} b, bool others) {
+    _ckd_c{{N}} tmp;
+    ckd_overflow(tmp) = _ckd_{{OP}}_3_{{N}}(&ckd_value(tmp), a, b, others);
+    return tmp;
 }
 
 {% endfor %}{# foreach OPS #}
 {% endfor %}{# foreach DATA #}
 
 // ]]]
-// Each type with every type operations [[[
+// Standard integer types aliases [[[
 
-{% macro check_range_in(var, NR) -%}
-    | ( {{var}} < _ckd_min_{{NR}} ) | ( {{var}} > _ckd_max_{{NR}} )
-{%- endmacro %}
-{% macro check_range(P1, P2, N1, N2, NR) %}
-    {% if NR != N1 %}
-        {% set var = PVALUE("a", P1) %}
-        {{- check_range_in(var, NR) -}}
-    {% endif %}
-    {% if NR != N2 %}
-        {% set var = PVALUE("b", P2) %}
-        {{- check_range_in(var, NR) -}}
-    {% endif %}
-{%- endmacro %}
-{% macro name_to_name(OP, N1, N2, NR) %}
-// Operation {{OP}} on {{N1}} and {{N2}} -> {{NR}}
-    {% for P1, P2 in PREFIXES %}
-_ckd_static bool _ckd_{{OP}}_3_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_type_{{NR}} *r, _ckd_type_{{P1}}{{N1}} a, _ckd_type_{{P2}}{{N2}} b) {
-    {% if N1 == N2 and N2 == NR and P1 == "" and P2 == "" %}
-    {# This is the basic, basic case #}
-    return _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}}_in(r, a, b);
-    {% else %}
-    return _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}}(r, {{PVALUE("a", P1)}}, {{PVALUE("b", P2)}})
-        {{- PORINEXACT("a",P1) -}}{{- PORINEXACT("b",P2) -}}{{- check_range(P1, P2, N1, N2, NR) -}} ;
-    {% endif %}
-}
-_ckd_funcconst ckd_{{NR}}_t _ckd_{{OP}}_2_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_type_{{P1}}{{N1}} a, _ckd_type_{{P2}}{{N2}} b) {
-    ckd_{{NR}}_t r; r._ineXact = _ckd_{{OP}}_3_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(&r._vaLue, a, b); return r;
-}
-    {% endfor %}
-{% endmacro %}
-
-{% set RET = namespace() %}
-{% macro only_smaller(N1, N1IDX, N2, N2IDX, NR, NRIDX) %}
-    {% if (N1 is NISSIGNED) == (NR is NISSIGNED) and N1IDX < NRIDX %}
-        {% set N1 = NR %}
-    {% endif %}
-    {% if (N2 is NISSIGNED) == (NR is NISSIGNED) and N2IDX < NRIDX %}
-        {% set N2 = NR %}
-    {% endif %}
-    {% set RET.N1 = N1 %}
-    {% set RET.N2 = N2 %}
-{% endmacro %}
-
-{% for OP in OPS %}
-    {% for N1 in NAMES %}
-        {{- name_to_name(OP, N1, N1, N1) -}}
+{% for V in [8, 16, 32, 64] %}
+    {% for N, T, DETECT, MAX, MIN in (DATA_STANDARD | reverse()) %}
+        {% if MIN == "0" %}
+            {% set P = "U" %}
+        {% else %}
+            {% set P = "" %}
+        {% endif %}
+#if !defined(ckd_int{{V}}_t) && {{P}}INT{{V}}_MAX == {{MAX}} && {{P}}INT{{V}}_MIN == {{MIN}}
+#define ckd_{{P|lower()}}int{{V}}_t ckd_{{N}}_t
+#endif
     {% endfor %}
 {% endfor %}
-{% if not ONLYSAMETYPES %}
-{% for OP in OPS %}
-    {% for N1 in NAMES %}
-        {% set N1IDX = loop.index %}
-        {% for N2 in NAMES %}
-            {% set N2IDX = loop.index %}
-            {% for NR in NAMES %}
-                {% set NRIDX = loop.index %}
-                {{- only_smaller(N1, N1IDX, N2, N2IDX, NR, NRIDX) -}}
-                {% if RET.N1 == N1 and RET.N2 == N2 and (N1 != N2 or N1 != NR) %}
-                    {{- name_to_name(OP, N1, N2, NR) -}}
-                {% endif %}
-            {% endfor %}
-        {% endfor %}
-    {% endfor %}
-{% endfor %}
-{% endif %}
+
+// ]]]
+// Generic _ckd_overflow and _ckd_value with normal types [[[
+
+{% call() foreach_TYPE() %}
+_ckd_funcconst _ckd_$TYPE _ckd_value_c$TYPE(_ckd_c$TYPE v) { return ckd_value(v); }
+_ckd_funcconst _ckd_$TYPE _ckd_value_$TYPE(_ckd_$TYPE v) { return v; }
+_ckd_funcconst bool _ckd_overflow_c$TYPE(_ckd_c$TYPE v) { return ckd_overflow(v); }
+_ckd_funcconst bool _ckd_overflow_$TYPE(_ckd_$TYPE v) { return 0; }
+{% endcall %}
+
+/// @define _ckd_value(X)
+// For any basic type returns it's value.
+// For any ckd_*_t type returns ckd_value(X).
+#define _ckd_value(X) \
+        _Generic((X), \
+{% call() foreach_TYPE(inmacro=1) %}
+        _ckd_c$TYPE: _ckd_value_c$TYPE, \
+        _ckd_$TYPE:  _ckd_value_$TYPE
+{%- endcall %} \
+        )(X)
+
+/// @define _ckd_overflow(X)
+/// Same as _ckd_value, but returns ckd_overflow(0) or 0.
+#define _ckd_overflow(X) \
+        _Generic((X), \
+{% call() foreach_TYPE(inmacro=1) %}
+        _ckd_c$TYPE: _ckd_overflow_c$TYPE, \
+        _ckd_$TYPE:  _ckd_overflow_$TYPE
+{%- endcall %} \
+        )(X)
 
 // ]]]
 // Generic macros implementation [[[
@@ -293,90 +289,32 @@ _ckd_funcconst ckd_{{NR}}_t _ckd_{{OP}}_2_{{NR}}_{{P1}}{{N1}}_{{P2}}{{N2}}(_ckd_
 struct _ckd_invalid_;
 void _ckd_invalid(struct _ckd_invalid_);
 
-{% set macrocontnl = ", \\
-" %}
-{# #}
-{% macro generics(end="") %}
-    {% for N, T in NAMESTYPES %}
-        {% set NIDX = loop.index %}
-{{ caller(N, T, NIDX) }}{{ macrocontnl if not loop.last else end }}
-    {%- endfor %}
-{% endmacro %}
-
-#define ckd_mk(value, inexact)  _Generic((value), \
-{% call(N, T, NIDX) generics() %}
-    {{T}}: ckd_mk_{{N}}_t
+#define ckd_mk(value, overflow)  _Generic((value), \
+{% call() foreach_TYPE(inmacro=1) %}
+    _ckd_$TYPE: ckd_mk_$TYPE_t
 {%- endcall %} \
-    )(value, inexact)
+    )(value, overflow)
 
-{% macro ingen_in(OP, CNT, P1, N1, N1IDX, NR, NRIDX) %}
-    {% for N2 in NAMES %}
-        {% set N2IDX = loop.index %}
-        {# #}
-        {# handle gen2 - determine NR type to be the bigger type #}
-        {% if CNT == 2 %}
-            {% set NR = N1 %}
-            {% set NRIDX = N1IDX %}
-            {% if N1IDX < N2IDX %}
-                {% set NR = N2 %}
-                {% set NRIDX = N2IDX %}
-            {% endif %}
-        {% endif %}
-        {# #}
-        {# handle OP_3 smaller types exclusion #}
-        {{- only_smaller(N1, N1IDX, N2, N2IDX, NR, NRIDX) -}}
-        {# #}
-_ckd_type_{{N2}}:  _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{RET.N1}}_{{RET.N2}}, \
-_ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{P1}}{{RET.N1}}_c{{RET.N2}}{{ macrocontnl if not loop.last else end }}
-    {%- endfor %}
-{% endmacro %}
+/* ------------------------------------------------------------------------- */
 
-{% macro ingen(OP, CNT, NR="", NRIDX=-1) %}
-    {% for N1, T1 in NAMESTYPES %}
-        {% set N1IDX = loop.index %}
-        {% if not ONLYSAMETYPES %}
-_ckd_type_{{N1}}: \
-    _Generic((b), \
-    {{ ingen_in(OP, CNT, "", N1, N1IDX, NR, NRIDX) | indent(4) }}, \
-    default: _ckd_invalid), \
-_ckd_type_c{{N1}}: \
-    _Generic((b), \
-    {{ ingen_in(OP, CNT, "c", N1, N1IDX, NR, NRIDX) | indent(4) }}, \
-    default: _ckd_invalid){{ macrocontnl }}
-        {%- else %}
-            {# If we got called from OP_2 or the types are the same #}
-            {% if NRIDX == -1 or NR == N1 %}
-                {% set NR = N1 %}
-                {% set N2 = N1 %}
-_ckd_type_{{N1}}: \
-    _Generic((b), \
-    _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_c{{N2}}, \
-    default: _ckd_{{OP}}_{{CNT}}_{{NR}}_{{N1}}_{{N2}}), \
-_ckd_type_c{{N1}}: \
-    _Generic((b), \
-    _ckd_type_c{{N2}}: _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_c{{N2}}, \
-    default:  _ckd_{{OP}}_{{CNT}}_{{NR}}_c{{N1}}_{{N2}}){{ macrocontnl }}
-            {%- endif %}
-        {% endif %}
-    {%- endfor %}
-{%- endmacro %}
-    
-{% for OP in OPS %}
-#define _ckd_{{OP}}_2(a, b)  _Generic((a), \
-    {{ ingen(OP, 2) | indent(4)
-}}    default: _ckd_invalid)(a, b)
-#define _ckd_{{OP}}_3(r, a, b)  _Generic((r), \
-{% call(NR, TR, NRIDX) generics() %}
-    {{TR}} *: \
-        _Generic((a), \
-        {{ ingen(OP, 3, NR, NRIDX) | indent(8)
-}}        default: _ckd_{{OP}}_3_{{NR}}_{{NR}}_{{NR}})
+{% call() foreach_OP() %}
+
+#define _ckd_$OP_2(a, b)  \
+    _Generic(_ckd_value(a) + _ckd_value(b), \
+{% call() foreach_TYPE(inmacro=1) %}
+    _ckd_$TYPE: _ckd_$OP_2_$TYPE
 {%- endcall %}, \
-    default: _ckd_invalid)(r, a, b)
-#define _ckd_{{OP}}_N(_2,_3,N,...) _ckd_{{OP}}_##N
-#define ckd_{{OP}}(w, ...)  _ckd_{{OP}}_N(__VA_ARGS__,3,2)(w,__VA_ARGS__)
+    default: _ckd_invalid)(_ckd_value(a), _ckd_value(b), _ckd_overflow(a) || _ckd_overflow(b))
+#define _ckd_$OP_3(r, a, b) \
+    _Generic(_ckd_value(a) + _ckd_value(b) + *(r), \
+{% call() foreach_TYPE(inmacro=1) %}
+    _ckd_$TYPE: _ckd_$OP_3_$TYPE
+{%- endcall %}, \
+    default: _ckd_invalid)((r), _ckd_value(a), _ckd_value(b), _ckd_overflow(a) || _ckd_overflow(b))
+#define _ckd_$OP_N(_2,_3,N,...) _ckd_$OP_##N
+#define ckd_$OP(w, ...)  _ckd_$OP_N(__VA_ARGS__,3,2)(w,__VA_ARGS__)
 
-{% endfor %}
+{% endcall %}
 
 // ]]]
 // EOF [[[
@@ -391,17 +329,17 @@ _ckd_type_c{{N1}}: \
 # It helps development.
 # This script takes 3 arguments:
 #   HAVE_UINT128 - do we have uint128 or not
-#   ONLYSAMETYPES - Generate shorter version and handle only same types in macros.
 #   output_file - the output file to write the output to.
 # If no arguments are given, it just writes to stdout.
 import sys
 import re
+import os
 from jinja2 import Template, Environment, BaseLoader
 
 HAVE_UINT128 = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
 # Set this to 0 to compile only same types operations, like ckd_add(int*, int, int)
-ONLYSAMETYPES = int(sys.argv.pop(1)) if len(sys.argv) > 1 else 0
-outf = open(sys.argv.pop(1), "w") if len(sys.argv) > 1 else sys.stdout
+outfile = sys.argv.pop(1) if len(sys.argv) > 1 else None
+outf = open(outfile, "w") if outfile else sys.stdout
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -433,9 +371,11 @@ env = Environment(
 env.tests['is_re_match']=is_re_match
 env.tests['NISSIGNED']=NISSIGNED
 
+if outfile:
+    os.makedirs(os.path.dirname(outfile), exist_ok=True)
+
 print(
     env.from_string(templatestr).render(
-        ONLYSAMETYPES=ONLYSAMETYPES,
         HAVE_UINT128=HAVE_UINT128
     ),
     file=outf,

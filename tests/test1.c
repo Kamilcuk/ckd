@@ -2,10 +2,6 @@
 int main() {
 	int a; bool b;
 
-#ifdef _ckd_ONLYSAMETYPES
-	fprintf(stderr, "ONLYSAMETYPES!\n");
-#endif
-
 	CKDTEST(ckd_add(2, 3), 5, 0);
 	CKDTEST(ckd_sub(5, 3), 2, 0);
 	CKDTEST(ckd_mul(2, 3), 6, 0);
@@ -56,12 +52,6 @@ int main() {
 	// !ONLYSAMETYPES calls _ckd_mul_2_llong_long_llong
 	//  ONLYSAMETYPES calls _ckd_mul_2_long_long_long
 	CKDTEST(ckd_mul(1l, 2ll), 2, 0);
-
-#ifndef _ckd_ONLYSAMETYPES
-	b = ckd_add(&a, LONG_MAX, 0);
-	TEST(a == (int)LONG_MAX);
-	TEST(b == 1); // conversion overflowed
-#endif
 
 	CKDEND();
 }

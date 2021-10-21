@@ -1,9 +1,4 @@
-
-#ifdef CKD__SMALL
-#include <ckdint_small.h>
-#else
 #include <ckdint.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -28,12 +23,12 @@ static const char RESET[] = "\E(B\E[m";
 
 #define TEST(expr)  INTEST(expr, #expr)
 
-#define CKDTEST(expr, value, inexact) do{ \
+#define CKDTEST(expr, value, overflow) do{ \
 	printf("%s:%3d: %s = %zuu%zdd ?= %zuu%zdd\n", FILENAME(), __LINE__, #expr, \
 			(uintmax_t)ckd_value(expr), (intmax_t)ckd_value(expr), \
 			(uintmax_t)value, (intmax_t)value); \
 	INTEST((value) == ckd_value(expr),     "value(   "#expr" ) == "#value""); \
-	INTEST((inexact) == ckd_inexact(expr), "inexact( "#expr" ) == "#inexact""); \
+	INTEST((overflow) == ckd_overflow(expr), "overflow( "#expr" ) == "#overflow""); \
 } while(0)
 
 #define CKDEND() exit(!test_failed ? EXIT_SUCCESS : EXIT_FAILURE)
