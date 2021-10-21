@@ -19,37 +19,65 @@ endif()
 
 find_program(Python_EXECUTABLE NAMES python3 python2 python REQUIRED)
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint${suff}.h
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py
+  OUTPUT
+    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
+  DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py
   COMMAND
     ${Python_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py
     "${HAVE_UINT128}"
-    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint${suff}.h
+    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
+  COMMENT "Generate ckdint.h"
+)
+add_custom_target(${PROJECT_NAME}_gen
+  DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
+  COMMENT "Generated ${PROJECT_NAME} header file"
 )
 add_library(${PROJECT_NAME} INTERFACE)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gen)
 target_sources(${PROJECT_NAME} INTERFACE
 	${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
 )
-target_include_directories(${PROJECT_NAME} INTERFACE
-	${CMAKE_CURRENT_BINARY_DIR}/include
+target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  LINKER_LANGUAGE C
+  C_EXTENSIONS NO
+  C_STANDARD 11
+  C_STANDARD_REQUIRED NO
+)
+target_compile_features(${PROJECT_NAME} INTERFACE
+  c_std_11
+  c_function_prototypes
+  c_static_assert
+  c_variadic_macros
 )
 
 include(CTest)
 if(BUILD_TESTING)
 	file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/tests tests/*.c)
-	foreach(t IN LISTS tests)
-    set(n ${PROJECT_NAME}_${t})
-    add_executable(${n} tests/${t})
-    target_link_libraries(${n} PUBLIC ${PROJECT_NAME})
-    add_test(NAME ${n} COMMAND ${n})
+	foreach(tt IN LISTS tests)
+    string(REGEX REPLACE "\.c" "" _nn ${tt})
+    set(_nn ${PROJECT_NAME}_${_nn})
+    add_executable(${_nn} tests/${tt})
+    target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
+    add_test(NAME ${_nn} COMMAND ${_nn})
+    set_tests_properties(${_nn} PROPERTIES
+      LABEL ${PROJECT_NAME}
+    )
 
-    set(n ${PROJECT_NAME}_nongnu_${t})
-    add_executable(${n} tests/${t})
-    target_link_libraries(${n} PUBLIC ${PROJECT_NAME})
-    target_compile_definitions(${n} PUBLIC CKD_DO_NOT_USE_BUILTINS=1)
-    add_test(NAME ${n} COMMAND ${n})
+    set(_nn ${_nn}_nongnu)
+    add_executable(${_nn} tests/${tt})
+    target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
+    target_compile_definitions(${_nn} PUBLIC CKD_DO_NOT_USE_BUILTINS=1)
+    add_test(NAME ${_nn} COMMAND ${_nn})
+    set_tests_properties(${_nn} PROPERTIES
+      LABEL ${PROJECT_NAME}_nongnu
+    )
 	endforeach()
 endif()
 

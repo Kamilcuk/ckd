@@ -15,7 +15,8 @@ icc_test:
   script:
     - . /root/.oneapi_env_vars
     - apt-get update
-    - apt-get install -y python3-jinja2
+    - apt-get install -y python3-pip
+    - pip3 install jinja2
     - make test
 
 gcc_test:
