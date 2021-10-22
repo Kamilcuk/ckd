@@ -33,29 +33,38 @@ find_program(Python_EXECUTABLE NAMES python3 python2 python REQUIRED)
 ###############################################################################
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
-add_custom_command(
-  OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
-  DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py
-  COMMAND
-    ${Python_EXECUTABLE}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ckdint.h.py
-    "${HAVE_UINT128}"
-    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
-  COMMENT "Generate ckdint.h"
-)
-add_custom_target(ckdint.h
-  DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint)
+set(generated)
+foreach(ii IN ITEMS ckdint.h ckdint/ckdint_nognu.h ckdint/ckdint_gnu.h)
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/script.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/library.jinja
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/${ii}
+    COMMAND
+      ${Python_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/script.py
+      ${ii}
+      "${HAVE_UINT128}"
+      ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
+    COMMENT "Generate ${ii}"
+  )
+  list(APPEND generated
+    ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
+  )
+endforeach()
+
+add_custom_target(ckdint_gen
+  DEPENDS ${generated}
   COMMENT "Generated ${PROJECT_NAME} header file"
 )
 add_library(${PROJECT_NAME} INTERFACE)
-add_dependencies(${PROJECT_NAME} ckdint.h)
-target_sources(${PROJECT_NAME} INTERFACE
-	${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
-)
-target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+add_dependencies(${PROJECT_NAME} ckdint_gen)
+target_sources(${PROJECT_NAME} INTERFACE ${generated})
+target_include_directories(${PROJECT_NAME} INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES
   LINKER_LANGUAGE C
@@ -86,6 +95,15 @@ if(BUILD_TESTING)
     set(_nn ${PROJECT_NAME}_${_nn})
     add_executable(${_nn} tests/${tt})
     target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
+    add_test(NAME ${_nn} COMMAND ${_nn})
+    set_tests_properties(${_nn} PROPERTIES
+      LABEL ${PROJECT_NAME}
+    )
+
+    set(_nn ${PROJECT_NAME}_${_nn}_nognu)
+    add_executable(${_nn} tests/${tt})
+    target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
+    target_compile_definitions(${_nn} PUBLIC CKD_USE_NOGNU)
     add_test(NAME ${_nn} COMMAND ${_nn})
     set_tests_properties(${_nn} PROPERTIES
       LABEL ${PROJECT_NAME}

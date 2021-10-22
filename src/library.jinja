@@ -1,0 +1,99 @@
+{#-
+	library for ninja templates
+-#}
+
+{#- OPS - represent possible operations #}
+{% set OPS = [ "add", "sub", "mul" ] %}
+
+{#- TYPES format: name type detect max min #}
+{# BASICTYPES - the main types #}
+{% set BASICTYPES = [
+        ("schar",  "signed char",        "1", "SCHAR_MAX",  "SCHAR_MIN"),
+        ("uchar",  "unsigned char",      "1", "UCHAR_MAX",  "0"),
+        ("shrt",   "short",              "1", "SHRT_MAX",   "SHRT_MIN"),
+        ("ushrt",  "unsigned short",     "1", "USHRT_MAX",  "0"),
+        ("int",    "int",                "1", "INT_MAX",    "INT_MIN"),
+        ("uint",   "unsigned int",       "1", "UINT_MAX",   "0"),
+        ("long",   "long",               "1", "LONG_MAX",   "LONG_MIN"),
+        ("ulong",  "unsigned long",      "1", "ULONG_MAX",  "0"),
+        ("llong",  "long long",          "1", "LLONG_MAX",  "LLONG_MIN"),
+        ("ullong", "unsigned long long", "1", "ULLONG_MAX", "0"),
+    ]
+%}
+{-# To iterate use this:
+    for N, T, DETECT, MAX, MIN in TYPES
+-#}
+
+{#- #}
+{% set INT128TYPES = [
+    ("int128",  "__int128",          "__SIZEOF_INT128__", "INT128_MAX",  "INT128_MIN"),
+    ("uint128", "unsigned __int128", "__SIZEOF_INT128__", "UINT128_MAX", "0"),
+    ]
+%}
+
+{#- TYPES - BASICTYPES + int128, so everything we can put into _Generic #}
+{% set TYPES = BASICTYPES.copy() %}
+{% if HAVE_UINT128 %}
+    {% for d in INT128TYPES %}
+        {% set _ = TYPES.append(d) %}
+    {% endfor %}
+{% endif %}
+
+{#- ALIASEDTYPES represents all types that are aliased to basic types #}
+{% set ALIASEDTYPES = [
+        ("intmax",  "intmax_t",  "INTMAX_MAX",  "INTMAX_MAX",  "INTMAX_MIN"),
+        ("uintmax", "uintmax_t", "UINTMAX_MAX", "UINTMAX_MAX", "0"),
+        ("size",    "size_t",    "SIZE_MAX",    "SIZE_MAX",    "0"),
+        ("intptr",  "intptr_t",  "INTPTR_MAX",  "INTPTR_MAX",  "INTPTR_MIN"),
+        ("uintptr", "uintptr_t", "UINTPTR_MAX", "UINTPTR_MAX", "0"),
+    ]
+%}
+{% for N in [ 8, 16, 32, 64 ] %}
+    {% for p in [ "int", "int_least", "int_fast" ] %}
+        {% set P = p | upper() %}
+        {% set _ = ALIASEDTYPES.append( (p~N, p~N~"_t", P~N~"_MAX", P~N~"_MAX", P~N~"_MIN") ) %}
+        {% set _ = ALIASEDTYPES.append( ("u"~p~N, "u"~p~N~"_t", "U"~P~N~"_MAX", "U"~P~N~"_MAX", "0") ) %}
+    {% endfor %}
+{% endfor %}
+
+{#- ALLTYPES - actually all possible types #}
+{% set ALLTYPES = TYPES.copy() %}
+{% for d in ALIASEDTYPES %}
+    {% set _ = ALLTYPES.append(d) %}
+{% endfor %}
+
+{%- set macrocontnl = ", \\
+" %}
+
+{#- Replace $OP for operation #}
+{% macro foreach_OP() %}
+    {% for OP in OPS %}
+        {{- caller() | replace("$OP", OP) }}
+    {%- endfor %}
+{% endmacro %}
+
+{#- Replace $TYPE for operation #}
+{% macro foreach_TYPE(inmacro=0, end="", arg=0, repl="$TYPE") %}
+    {% for N, T, DETECT, MAX, MIN in TYPES %}
+		{% set ctx = {
+                "IDX": loop.index,
+                "HALFIDX": (loop.index / 2 | int) * 2,
+                "signed": ("1" if MIN == "0" else "0"),
+                "MAX": MAX,
+                "MIN": MIN,
+			}
+        %}
+        {% if arg %}
+            {% set out = caller(ctx) %}
+        {% else %}
+            {% set out = caller() %}
+        {% endif %}
+        {{- out | replace(repl, N) -}}
+        {%- if inmacro -%}
+            {{- macrocontnl if not loop.last else end -}}
+        {%- endif -%}
+    {%- endfor %}
+{% endmacro -%}
+
+{#- vim: autoindent nosmartindent ft=
+-#}

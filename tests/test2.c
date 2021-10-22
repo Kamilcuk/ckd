@@ -9,5 +9,7 @@ int main() {
 	CKDTEST(ckd_sub(1, 2ull), (unsigned long long)-1, 1);
 	CKDTEST(ckd_sub(1, 2), -1, 0);
 
+	CKDTEST(ckd_add(ckd_add(INT_MAX, 1), 1), INT_MIN + 1, 1);
+
 	CKDEND();
 }
