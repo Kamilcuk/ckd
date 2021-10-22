@@ -1,6 +1,10 @@
 #include "test.h"
 #include <limits.h>
 int main() {
+	ckd_int_t array[2] = {ckd_mk_int_t(1, false), ckd_mk_int_t(2, false)};
+	CKDTEST(array[0], 1, false);
+	CKDTEST(array[1], 2, false);
+
 	// assumes 32-bit int, so MAX_INT = 2^31 - 1
 #if INT_MAX == INT32_MAX
 	int64_t a5;
@@ -21,4 +25,9 @@ int main() {
 	// Wraps around: ckd_value(a7) = -2^31, ckd_overflow(a7) = true
 	TEST(ckd_value(a7) == -2147483648);
 	TEST(ckd_overflow(a7) == true);
+
+	CKDTEST(ckd_add(40, 2), 42, 0);
+	int temp;
+  	TEST(ckd_add(&temp, 2000, 20) == 0);
+	TEST(temp == 2020);
 }

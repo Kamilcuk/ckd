@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.11)
 project(ckd LANGUAGES C)
 
+include(CheckTypeSize)
+include(CTest)
+
 if(CKD_DEV)
 	set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
   set(BUILD_TESTING 1)
@@ -18,7 +21,6 @@ endif()
 
 ###############################################################################
 
-include(CheckTypeSize)
 check_type_size("__int128" UINT128 BUILTIN_TYPES_ONLY LANGUAGE C)
 if (HAVE_UINT128)
 	set(HAVE_UINT128 1)
@@ -77,7 +79,6 @@ install(FILES
 
 ###############################################################################
 
-include(CTest)
 if(BUILD_TESTING)
 	file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/tests tests/*.c)
 	foreach(tt IN LISTS tests)
