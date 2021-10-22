@@ -14,6 +14,8 @@ int main() {
 	// Error: ckd_add returns a ckd_int32_t,
 	// which does not implicitly convert to ckd_int64_t
 	ckd_int_t a6 = ckd_add(INT_MAX, 1); // from this proposal
+	TEST(ckd_value(a6) == INT_MIN);
+	TEST(ckd_overflow(a6) == 1);
 
 	ckd_int_t a7 = ckd_add(INT_MAX, 1); // from this proposal
 	// Wraps around: ckd_value(a7) = -2^31, ckd_overflow(a7) = true

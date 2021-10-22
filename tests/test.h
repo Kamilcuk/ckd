@@ -1,3 +1,6 @@
+#ifndef TESTS_TEST_H_
+#define TESTS_TEST_H_
+
 #include <ckdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,3 +36,4 @@ static const char RESET[] = "\E(B\E[m";
 
 #define CKDEND() exit(!test_failed ? EXIT_SUCCESS : EXIT_FAILURE)
 
+#endif
