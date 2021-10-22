@@ -77,7 +77,7 @@ void super_test() { \
     CASE1(llong, X,x, Y,y, Z,z);
 
 int main() {
-#if !CKD_USE_NOGNU || !__GNUC__
+#if !CKD_USE_NOGNU || !__GNUC__ || __clang__ || __INTEL_COMPILER
 	// This test is only meaningfull when using non-gnu.
 #else
 #define S long long
