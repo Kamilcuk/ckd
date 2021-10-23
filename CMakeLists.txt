@@ -91,7 +91,7 @@ install(FILES
 if(BUILD_TESTING)
 	file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/tests tests/*.c)
 	foreach(tt IN LISTS tests)
-    string(REGEX REPLACE "\.c" "" _nn ${tt})
+    string(REGEX REPLACE "\\.c" "" _nn ${tt})
     set(_nn ${PROJECT_NAME}_${_nn})
     add_executable(${_nn} tests/${tt})
     target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
@@ -100,7 +100,7 @@ if(BUILD_TESTING)
       LABEL ${PROJECT_NAME}
     )
 
-    set(_nn ${PROJECT_NAME}_${_nn}_nognu)
+    set(_nn ${_nn}_nognu)
     add_executable(${_nn} tests/${tt})
     target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
     target_compile_definitions(${_nn} PUBLIC CKD_USE_NOGNU)
