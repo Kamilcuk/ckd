@@ -112,6 +112,12 @@ _ckd_fconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool overflow) {
 }
 {% endfor %}
 
+#define ckd_mk(value, overflow) \
+		_Generic((value), \
+{% call() L.foreach_TYPE(inmacro=1) %}
+        _ckd_$TYPE: ckd_mk_$TYPE_t
+{%- endcall %})(value, overflow)
+
 // ]]]
 // Macro helpers [[[
 
