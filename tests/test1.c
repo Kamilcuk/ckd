@@ -8,9 +8,6 @@ int main() {
 	CKDTEST(ckd_mul(INT_MAX, 2), -2, 1);
 
 	CKDTEST(ckd_add(INT_MAX, 1), INT_MIN, 1);
-	CKDTEST(ckd_mul(ckd_sub(ckd_add(INT_MAX, 1), INT_MIN + 2), 2), -4, 1);
-
-    CKDTEST(ckd_mul(ckd_add(1, 1), 2), 4, 0);
 
 	CKDTEST(ckd_add(INT_MAX, 1), INT_MIN, 1);
 	CKDTEST(ckd_sub(INT_MIN, 1), INT_MAX, 1);

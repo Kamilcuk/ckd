@@ -19,32 +19,60 @@
            void *: "pointer to void",                int *: "pointer to int",         \
           default: "other")
 
-static bool test_failed = 0;
+bool test_failed = 0;
 
 static const char RED[] = "\E[1m\E[31m";
 static const char RESET[] = "\E(B\E[m";
 
 #define FILENAME() (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
+#define LOG(...)  do { \
+	fflush(0); \
+	fprintf(stderr, "%s:%3d: ", FILENAME(), __LINE__); \
+	fprintf(stderr, __VA_ARGS__); \
+	fprintf(stderr, "%s\n", RESET); \
+} while(0)
+
+#define ERROR(...)  do { \
+	fflush(0); \
+	fprintf(stderr, "%s:%3d: %sERROR: ", FILENAME(), __LINE__, RED); \
+	fprintf(stderr, __VA_ARGS__); \
+	fprintf(stderr, "%s\n", RESET); \
+} while(0)
+
+
 #define INTEST(expr, strexpr) do{ \
-	printf("%s:%3d: Testing: %s\n", FILENAME(), __LINE__, strexpr); \
-	fflush(stdout); \
 	if (!(expr)) { \
-		fprintf(stderr, "%s:%3d: %sExpression: %s: failed%s\n", FILENAME(), __LINE__, \
-				RED, strexpr, RESET); \
+		ERROR("Expression: %s: failed", strexpr); \
 		test_failed = 1; \
+	} else { \
+		LOG("%s is true", strexpr); \
 	} \
 }while(0)
 
 #define TEST(expr)  INTEST(expr, #expr)
 
-#define CKDTEST(expr, value, overflow) do{ \
-	printf("%s:%3d: %s -> %s = %zuu%zdd ?= %zuu%zdd\n", FILENAME(), __LINE__, \
-			#expr, typename(expr), \
-			(uintmax_t)ckd_value(expr), (intmax_t)ckd_value(expr), \
-			(uintmax_t)value, (intmax_t)value); \
-	INTEST((value) == ckd_value(expr),     "value(   "#expr" ) == "#value""); \
-	INTEST((overflow) == ckd_overflow(expr), "overflow( "#expr" ) == "#overflow""); \
+#define TEST_EQ_IN(expr1, expr1str, expr2, expr2str) do{ \
+	uintmax_t _expr1 = (expr1); \
+	uintmax_t _expr2 = (expr2); \
+	if (_expr1 != _expr2) { \
+		ERROR("Expression: %s == %s is false: %juu/%jdd != %juu/%jdd", \
+				expr1str, expr2str, _expr1, (intmax_t)_expr1, _expr2, (intmax_t)_expr2); \
+		test_failed = 1; \
+	} else { \
+		LOG("%s == %s", expr1str, expr2str); \
+	} \
+} while(0);
+
+#define TEST_EQ(expr1, expr2)  TEST_EQ_IN(expr1, #expr1, expr2, #expr2)
+
+
+#define CKDTEST(expr, value, overflow) do { \
+		uintmax_t _value = ckd_value(expr); \
+		uintmax_t _overflow = ckd_overflow(expr); \
+		LOG("Testing expression %s -> %s", #expr, typename(ckd_value(expr))); \
+		TEST_EQ_IN(_value, #expr ".value", value, #value); \
+		TEST_EQ_IN(_overflow, #expr ".overflow", overflow, #overflow); \
 } while(0)
 
 #define CKDEND() exit(!test_failed ? EXIT_SUCCESS : EXIT_FAILURE)
