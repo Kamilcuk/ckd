@@ -73,16 +73,28 @@
 {% endmacro %}
 
 {#- Replace $TYPE for operation #}
-{% macro foreach_TYPE(inmacro=0, end="", arg=0, repl="$TYPE") %}
+{% macro foreach_TYPE(inmacro=0, end="", arg=0, repl="$TYPE", alsocprefix=0) %}
     {% for N, T, DETECT, MAX, MIN in TYPES %}
-		{% set ctx = {
+        {% set ctx = {
                 "IDX": loop.index,
-                "HALFIDX": (loop.index / 2 | int) * 2,
-                "signed": ("1" if MIN == "0" else "0"),
+                "HALFIDX": (((loop.index / 2) | int) * 2) | int,
+                "signed": ("0" if MIN == "0" else "1"),
+                "SIGNED": ("0" if MIN == "0" else "1"),
                 "MAX": MAX,
                 "MIN": MIN,
-			}
+            }
         %}
+        {% if alsocprefix %}
+            {% if arg %}
+                {% set out = caller(ctx) %}
+            {% else %}
+                {% set out = caller() %}
+            {% endif %}
+            {{- out | replace(repl, "c"~N) -}}
+            {%- if inmacro -%}
+                {{- macrocontnl -}}
+            {%- endif -%}
+        {% endif %}
         {% if arg %}
             {% set out = caller(ctx) %}
         {% else %}
