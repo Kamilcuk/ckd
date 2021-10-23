@@ -3,6 +3,7 @@
  * @file ckdint_gnu.h
  * @author Kamil Cukrowski <kamilcukrowski@gmail.com>
  * @date 2021-06-19
+ * @copyright 2021 Kamil Cukrowski
  * SPDX-License-Identifier: MIT + Beerware
  */
 #ifndef CKDINT_H_
@@ -26,13 +27,20 @@
 {% call() L.foreach_OP() %}
 
 #define _ckd_$OP_2(a, b)  ({ \
-        __auto_type _tMp = _ckd_getctype(_ckd_value(a) + _ckd_value(b))(0, 0); \
-        ckd_overflow(_tMp) = __builtin_$OP_overflow(_ckd_value(a), _ckd_value(b), &ckd_value(_tMp)) || _ckd_overflow(a) || _ckd_overflow(b); \
-        _tMp; \
-        })
+		__auto_type _ckd_a = (a); \
+		__auto_type _ckd_b = (b); \
+		__auto_type _ckd_tmp = _ckd_getctype(_ckd_value(_ckd_a) + _ckd_value(_ckd_b))(0, 0); \
+		ckd_overflow(_ckd_tmp) = __builtin_$OP_overflow(_ckd_value(_ckd_a), _ckd_value(_ckd_b), &ckd_value(_ckd_tmp)) \
+			|| _ckd_overflow(_ckd_a) || _ckd_overflow(_ckd_b); \
+		_ckd_tmp; \
+		})
 
-#define _ckd_$OP_3(r, a, b) \
-        (__builtin_$OP_overflow(_ckd_value(a), _ckd_value(b), r) || _ckd_overflow(a) || _ckd_overflow(b))
+#define _ckd_$OP_3(r, a, b)  ({ \
+		__auto_type _ckd_a = (a); \
+		__auto_type _ckd_b = (b); \
+		__builtin_$OP_overflow(_ckd_value(_ckd_a), _ckd_value(_ckd_b), r) \
+			|| _ckd_overflow(_ckd_a) || _ckd_overflow(_ckd_b); \
+		})
 
 {% endcall %}
 // ]]]
