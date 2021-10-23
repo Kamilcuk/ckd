@@ -29,17 +29,21 @@
 #define _ckd_$OP_2(a, b)  ({ \
 		__auto_type _ckd_a = (a); \
 		__auto_type _ckd_b = (b); \
-		__auto_type _ckd_tmp = _ckd_getctype(_ckd_value(_ckd_a) + _ckd_value(_ckd_b))(0, 0); \
-		ckd_overflow(_ckd_tmp) = __builtin_$OP_overflow(_ckd_value(_ckd_a), _ckd_value(_ckd_b), &ckd_value(_ckd_tmp)) \
-			|| _ckd_overflow(_ckd_a) || _ckd_overflow(_ckd_b); \
+		__auto_type _ckd_ca = _ckd_toct(_ckd_a); \
+		__auto_type _ckd_cb = _ckd_toct(_ckd_b); \
+		__auto_type _ckd_tmp = _ckd_getctype(ckd_value(_ckd_ca) + ckd_value(_ckd_cb))(0, 0); \
+		ckd_overflow(_ckd_tmp) = __builtin_$OP_overflow(_ckd_value(_ckd_ca), ckd_value(_ckd_cb), &ckd_value(_ckd_tmp)) \
+			|| ckd_overflow(_ckd_ca) || ckd_overflow(_ckd_cb); \
 		_ckd_tmp; \
 		})
 
 #define _ckd_$OP_3(r, a, b)  ({ \
 		__auto_type _ckd_a = (a); \
 		__auto_type _ckd_b = (b); \
-		__builtin_$OP_overflow(_ckd_value(_ckd_a), _ckd_value(_ckd_b), r) \
-			|| _ckd_overflow(_ckd_a) || _ckd_overflow(_ckd_b); \
+		__auto_type _ckd_ca = _ckd_toct(_ckd_a); \
+		__auto_type _ckd_cb = _ckd_toct(_ckd_b); \
+		__builtin_$OP_overflow(_ckd_value(_ckd_ca), ckd_value(_ckd_cb), r) \
+			|| ckd_overflow(_ckd_ca) || ckd_overflow(_ckd_cb); \
 		})
 
 {% endcall %}
