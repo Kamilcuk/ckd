@@ -3,6 +3,7 @@
  * @file
  * @author Kamil Cukrowski <kamilcukrowski@gmail.com>
  * @date 2021-06-19
+ * @copyright 2021 Kamil Cukrowski
  * SPDX-License-Identifier: MIT + Beerware
  */
 // Header [[[
@@ -115,11 +116,25 @@ _ckd_fconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool overflow) {
 // Macro helpers [[[
 
 {% call() L.foreach_TYPE() %}
-_ckd_fconst _ckd_$TYPE _ckd_value_c$TYPE(_ckd_c$TYPE v) { return ckd_value(v); }
-_ckd_fconst _ckd_$TYPE _ckd_value_$TYPE(_ckd_$TYPE v) { return v; }
-_ckd_fconst bool _ckd_overflow_c$TYPE(_ckd_c$TYPE v) { return ckd_overflow(v); }
-_ckd_fconst bool _ckd_overflow_$TYPE(_ckd_$TYPE v) { (void)v; return 0; }
+_ckd_fconst _ckd_c$TYPE _ckd_toct_$TYPE(_ckd_$TYPE v) { return ckd_mk_$TYPE_t(v, 0); }
+_ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
 {% endcall %}
+
+/**
+ * @define ckd_toct(x)
+ * @brief For any basic type and checked type convert it to checked type.
+ * Integers have overflow equal to 0.
+ * @param X Any integer type or checked integer type.
+ * @return A checked integer type the same type of integer type
+ * or the value of checked integer type.
+ */
+#define _ckd_toct(X) \
+        _Generic((X), \
+{% call() L.foreach_TYPE(inmacro=1) %}
+        _ckd_c$TYPE: _ckd_toct_c$TYPE, \
+        _ckd_$TYPE:  _ckd_toct_$TYPE
+{%- endcall %})(X)
+
 
 /**
  * @define _ckd_value(X)
@@ -128,24 +143,14 @@ _ckd_fconst bool _ckd_overflow_$TYPE(_ckd_$TYPE v) { (void)v; return 0; }
  * @param X Any integer type or checked integer type.
  * @return Value of the integer or the value hold inside checked integer type.
  */
-#define _ckd_value(X) \
-        _Generic((X), \
-{% call() L.foreach_TYPE(inmacro=1) %}
-        _ckd_c$TYPE: _ckd_value_c$TYPE, \
-        _ckd_$TYPE:  _ckd_value_$TYPE
-{%- endcall %})(X)
+#define _ckd_value(X)  ckd_value(_ckd_toct(X))
 
 /**
  * @define _ckd_overflow(X)
  * @param X Any integer type or checked integer type.
  * @return 0 for integer types, the overflow flat for checked integer types.
  */
-#define _ckd_overflow(X) \
-        _Generic((X), \
-{% call() L.foreach_TYPE(inmacro=1) %}
-        _ckd_c$TYPE: _ckd_overflow_c$TYPE, \
-        _ckd_$TYPE:  _ckd_overflow_$TYPE
-{%- endcall %})(X)
+#define _ckd_overflow(X)  ckd_overflow(_ckd_toct(X))
 
 // ]]]
 // Generic macros implementation [[[
@@ -169,7 +174,7 @@ _ckd_fconst bool _ckd_overflow_$TYPE(_ckd_$TYPE v) { (void)v; return 0; }
 
 /// @brief Macro overload on number of arguments for ckd_$OP
 /// @see ckd_$OP
-#define _ckd_$OP_N(_2,_3,N,...)  _ckd_$OP_##N
+#define _ckd_$OP_N(_2, _3, N, ...)  _ckd_$OP_##N
 /**
  * @define ckd_$OP(...)
  * @brief `bool ckd_$OP(type1 *result, type2 a, type3 b);` or `ckd_type_t ckd_$OP(type1 a, type2 b);`
@@ -191,13 +196,13 @@ _ckd_fconst bool _ckd_overflow_$TYPE(_ckd_$TYPE v) { (void)v; return 0; }
  * particular type.  For the first form, this particular type is type1. For the second form, this type is the
  * type that would have been used had the operands undergone usual arithmetic conversion. (Section 6.3.1.8)
  */
-#define ckd_$OP(w, ...)  _ckd_$OP_N(__VA_ARGS__,3,2)(w,__VA_ARGS__)
+#define ckd_$OP(w, ...)  _ckd_$OP_N(__VA_ARGS__, 3, 2)(w, __VA_ARGS__)
 
 {% endcall %}
 // ]]]
 // EOF [[[
 
-#endif /* CKDINT_H_ */
+#endif  // CKDINT_H_
 
 // ]]]
 // vim: ft=c
