@@ -56,8 +56,11 @@
 int main() {
 	TEST_S(short, USHRT_MAX, SHRT_MAX, SHRT_MIN);
 	TEST_S(int, UINT_MAX, INT_MAX, INT_MIN);
+#if !defined(__INTEL_COMPILER) && !CKD_USE_NOGNU
+	// https://community.intel.com/t5/Intel-C-Compiler/icc-bug-builtin-mul-overflow-wrong-overflow-value-when-casting/m-p/1324099/emcs_t/S2h8ZW1haWx8dG9waWNfc3Vic2NyaXB0aW9ufEtWMlQ3WDdNRjUwMktMfDEzMjQwOTl8U1VCU0NSSVBUSU9OU3xoSw#M39393
 	TEST_S(long, ULONG_MAX, LONG_MAX, LONG_MIN);
 	TEST_S(long long, ULLONG_MAX, LLONG_MAX, LLONG_MIN);
+#endif
 	TEST_S(char, UCHAR_MAX, SCHAR_MAX, SCHAR_MIN);
 	CKDEND();
 }
