@@ -75,7 +75,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_compile_features(${PROJECT_NAME} INTERFACE
   c_std_11
   c_function_prototypes
-  c_static_assert
   c_variadic_macros
 )
 
