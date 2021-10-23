@@ -273,10 +273,34 @@ _ckd_fchpnt bool _ckd_$OP_3_{{U}}_to_$TYPE(_ckd_$TYPE *ret, _ckd_arg_{{U}} a, _c
 {% endfor %}
 // Helper macros [[[
 
+/**
+ * @define _ckd_gvalue(X)
+ * @brief For any basic type returns it's value.
+ * For any ckd_*_t type returns ckd_value(X).
+ * Mnemonic from Generic value.
+ * @param X Any integer type or checked integer type.
+ * @return Value of the integer or the value hold inside checked integer type.
+ */
+#define _ckd_gvalue(X)  ckd_value(_ckd_toct(X))
+
+/**
+ * @define _ckd_goverflow(X)
+ * @brief Generic overflow
+ * @param X Any integer type or checked integer type.
+ * @return 0 for integer types, the overflow flat for checked integer types.
+ */
+#define _ckd_goverflow(X)  ckd_overflow(_ckd_toct(X))
+
+/**
+ * @define _ckd_issigned(T)
+ * @param T Any integer type or checked integer type.
+ * @return 1 if type is signed, 0 otherwise.
+ */
 #define _ckd_issigned(T) \
-		_Generic(_ckd_value(T), \
+		_Generic((T), \
 {% call(D) L.foreach_TYPE(inmacro=1, arg=1) %}
-		_ckd_$TYPE: {{ D.SIGNED }}
+		_ckd_$TYPE:  {{ D.SIGNED }}, \
+		_ckd_c$TYPE: {{ D.SIGNED }}
 {%- endcall %})
 
 {% call() L.foreach_TYPE() %}
@@ -288,13 +312,19 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 {% endcall %}
 
 /**
+ * @define _ckd_arg(TO, FROM)
+ * @brief Converts any integer or checked integer type into an _ckd_arg of integer type TO.
+ * @param TO Any integer type or checked integer type.
+ * @param FROM Any integer type or checked integer type.
+ * @return _ckd_arg structure that will be passed to other functions.
+ *
  * As of now, this is the part that makes nested invokations not possible to compile.
  * This is the slowest part because of the double _Generic(...: _Generic(....) );
  * I have no really good idea how to remove it. The problem is that `FROM` is macro expanded
  * by preprocessor for each type, which makes the preprocessor output unbearable big if `FROM`
  * is also a call to ckd_* function.
- * The arguments to the functions could be changed to `(_ckd_value(FROM), _ckd_overflow(FROM))`
- * and then `_ckd_value(FROM)` can be implicitly-promoted to `_ckd_value(TO)` type.
+ * The arguments to the functions could be changed to `(_ckd_gvalue(FROM), _ckd_overflow(FROM))`
+ * and then `_ckd_gvalue(FROM)` can be implicitly-promoted to `_ckd_gvalue(TO)` type.
  * But the problem is that then `FROM` is evaulated two times, and we do not want that.
  */
 #define _ckd_arg(TO, FROM) \
@@ -321,7 +351,7 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 	{%- endcall %})(r, _ckd_arg(T, a), _ckd_arg(T, b))
 
 #define _ckd_$OP_3(r, a, b) \
-		_ckd_$OP_3_in(_ckd_value(a) + _ckd_value(b) + *(r), r, a, b)
+		_ckd_$OP_3_in(_ckd_gvalue(a) + _ckd_gvalue(b) + *(r), r, a, b)
 
 #define _ckd_$OP_2_in(T, a, b) \
 			_Generic(T, \
@@ -330,7 +360,7 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 	{%- endcall %})(_ckd_arg(T, a), _ckd_arg(T, b))
 
 #define _ckd_$OP_2(a, b) \
-		_ckd_$OP_2_in(_ckd_value(a) + _ckd_value(b), a, b)
+		_ckd_$OP_2_in(_ckd_gvalue(a) + _ckd_gvalue(b), a, b)
 
 {% endcall %}
 

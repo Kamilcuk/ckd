@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define typename(x) _Generic(_ckd_value(x),                                                 \
+#define typename(x) _Generic(ckd_value(_ckd_toct(x)),                                                 \
             _Bool: "_Bool",                  unsigned char: "unsigned char",          \
              char: "char",                     signed char: "signed char",            \
         short int: "short int",         unsigned short int: "unsigned short int",     \

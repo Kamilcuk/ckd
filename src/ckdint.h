@@ -135,23 +135,6 @@ _ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
         _ckd_$TYPE:  _ckd_toct_$TYPE
 {%- endcall %})(X)
 
-
-/**
- * @define _ckd_value(X)
- * @brief For any basic type returns it's value.
- * For any ckd_*_t type returns ckd_value(X).
- * @param X Any integer type or checked integer type.
- * @return Value of the integer or the value hold inside checked integer type.
- */
-#define _ckd_value(X)  ckd_value(_ckd_toct(X))
-
-/**
- * @define _ckd_overflow(X)
- * @param X Any integer type or checked integer type.
- * @return 0 for integer types, the overflow flat for checked integer types.
- */
-#define _ckd_overflow(X)  ckd_overflow(_ckd_toct(X))
-
 // ]]]
 // Generic macros implementation [[[
 
