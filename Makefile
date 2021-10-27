@@ -18,9 +18,6 @@ test: build
 	wc $(B)/include/*.h $(B)/include/*/*.h
 clean:
 	rm -rf _build
-gen: build_gen
-	@mkdir -p ./generated
-	cp -va $(B)/include/* ./generated
 
 lint: build_gen
 	cd _build/include && cpplint \

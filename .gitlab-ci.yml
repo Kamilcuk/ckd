@@ -1,5 +1,4 @@
 ---
-image: registry.gitlab.com/kamcuk/builder
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   CMAKE_BUILD_TYPE: Release
@@ -20,13 +19,19 @@ icc_test:
     - make test
 
 gcc_test:
+  image: registry.gitlab.com/kamcuk/builder
   variables:
     CC: gcc
   script:
     - pacman -Sy --noconfirm python-jinja
     - make test
+    - mv _build/gcc/include ./include
+  artifacts:
+    paths:
+      - include
 
 clang_test:
+  image: registry.gitlab.com/kamcuk/builder
   variables:
     CC: clang
   script:
