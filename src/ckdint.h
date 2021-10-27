@@ -122,14 +122,34 @@ _ckd_fconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool overflow) {
 // Macro helpers [[[
 
 {% call() L.foreach_TYPE() %}
+_ckd_fconst _ckd_c$TYPE _ckd_ctypeof_$TYPE(void)  { const _ckd_c$TYPE ret = {0}; return ret; }
+_ckd_fconst _ckd_c$TYPE _ckd_ctypeof_c$TYPE(void) { const _ckd_c$TYPE ret = {0}; return ret; }
+{% endcall %}
+
+/**
+ * @define ckd_ctypeof(x)
+ * @brief For any basic type and checked type return a zero intialized
+ * associated checked integer type. This is to be used in _Generic expressions.
+ * @param X Any integer type or checked integer type.
+ * @return A checked integer type the same type of integer type
+ * or the value of checked integer type.
+ */
+#define _ckd_ctypeof(X) \
+        _Generic((X), \
+{% call() L.foreach_TYPE(inmacro=1) %}
+        _ckd_c$TYPE: _ckd_ctypeof_c$TYPE, \
+        _ckd_$TYPE:  _ckd_ctypeof_$TYPE
+{%- endcall %})()
+
+{% call() L.foreach_TYPE() %}
 _ckd_fconst _ckd_c$TYPE _ckd_toct_$TYPE(_ckd_$TYPE v) { return ckd_mk_$TYPE_t(v, 0); }
 _ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
 {% endcall %}
 
 /**
  * @define ckd_toct(x)
- * @brief For any basic type and checked type convert it to checked type.
- * Integers have overflow equal to 0.
+ * @brief For any basic type and checked type convert it to associated
+ * checked integer type. Integers have overflow equal to 0.
  * @param X Any integer type or checked integer type.
  * @return A checked integer type the same type of integer type
  * or the value of checked integer type.

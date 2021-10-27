@@ -274,24 +274,6 @@ _ckd_fchpnt bool _ckd_$OP_3_{{U}}_to_$TYPE(_ckd_$TYPE *ret, _ckd_arg_{{U}} a, _c
 // Helper macros [[[
 
 /**
- * @define _ckd_gvalue(X)
- * @brief For any basic type returns it's value.
- * For any ckd_*_t type returns ckd_value(X).
- * Mnemonic from Generic value.
- * @param X Any integer type or checked integer type.
- * @return Value of the integer or the value hold inside checked integer type.
- */
-#define _ckd_gvalue(X)  ckd_value(_ckd_toct(X))
-
-/**
- * @define _ckd_goverflow(X)
- * @brief Generic overflow
- * @param X Any integer type or checked integer type.
- * @return 0 for integer types, the overflow flat for checked integer types.
- */
-#define _ckd_goverflow(X)  ckd_overflow(_ckd_toct(X))
-
-/**
  * @define _ckd_issigned(T)
  * @param T Any integer type or checked integer type.
  * @return 1 if type is signed, 0 otherwise.
@@ -328,10 +310,10 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
  * But the problem is that then `FROM` is evaulated two times, and we do not want that.
  */
 #define _ckd_arg(TO, FROM) \
-			_Generic(_ckd_toct(TO), \
+			_Generic(_ckd_ctypeof(TO), \
 	{% call () L.foreach_TYPE(inmacro=1) %}
 			_ckd_c$TYPE: \
-				_Generic(_ckd_toct(FROM), \
+				_Generic(_ckd_ctypeof(FROM), \
 		{% call() L.foreach_TYPE(inmacro=1, repl="$TYPE2") %}
 				_ckd_c$TYPE2: _ckd_c$TYPE2_to_arg_$TYPE
 		{%- endcall %})
@@ -351,7 +333,7 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 	{%- endcall %})(r, _ckd_arg(T, a), _ckd_arg(T, b))
 
 #define _ckd_$OP_3(r, a, b) \
-		_ckd_$OP_3_in(_ckd_gvalue(a) + _ckd_gvalue(b) + *(r), r, a, b)
+		_ckd_$OP_3_in(ckd_value(_ckd_ctypeof(a)) + ckd_value(_ckd_ctypeof(b)) + *(r), r, a, b)
 
 #define _ckd_$OP_2_in(T, a, b) \
 			_Generic(T, \
@@ -360,7 +342,7 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 	{%- endcall %})(_ckd_arg(T, a), _ckd_arg(T, b))
 
 #define _ckd_$OP_2(a, b) \
-		_ckd_$OP_2_in(_ckd_gvalue(a) + _ckd_gvalue(b), a, b)
+		_ckd_$OP_2_in(ckd_value(_ckd_ctypeof(a)) + ckd_value(_ckd_ctypeof(b)), a, b)
 
 {% endcall %}
 
