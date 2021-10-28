@@ -7,8 +7,21 @@
 #include <stdint.h>
 #include <string.h>
 
-#define typename(x) _Generic(ckd_value(_ckd_toct(x)),                                                 \
-            _Bool: "_Bool",                  unsigned char: "unsigned char",          \
+#ifdef __SIZEOF_INT128__
+#ifndef INT128_MAX
+#define INT128_MAX   ((__int128)(((unsigned __int128) 1 << ((__SIZEOF_INT128__ * __CHAR_BIT__) - 1)) - 1))
+#endif
+#ifndef INT128_MIN
+#define INT128_MIN   (-INT128_MAX - 1)
+#endif
+#ifndef UINT128_MAX
+#define UINT128_MAX  ((2 * (unsigned __int128) INT128_MAX) + 1)
+#endif
+#endif  // __SIZEOF_INT128__
+
+#define TC(x)  ckd_##x##_t: "ckd_"#x"_t"
+#define typename(x) _Generic(x,                                                 \
+            _Bool: "bool",                  unsigned char: "unsigned char",          \
              char: "char",                     signed char: "signed char",            \
         short int: "short int",         unsigned short int: "unsigned short int",     \
               int: "int",                     unsigned int: "unsigned int",           \
@@ -17,6 +30,12 @@
             float: "float",                         double: "double",                 \
       long double: "long double",                   char *: "pointer to char",        \
            void *: "pointer to void",                int *: "pointer to int",         \
+		   TC(char), \
+		   TC(schar), TC(uchar), \
+		   TC(shrt), TC(ushrt), \
+		   TC(int), TC(uint), \
+		   TC(long), TC(ulong), \
+		   TC(llong), TC(ullong), \
           default: "other")
 
 bool test_failed = 0;
@@ -56,8 +75,10 @@ static const char RESET[] = "\E(B\E[m";
 	uintmax_t _expr1 = (expr1); \
 	uintmax_t _expr2 = (expr2); \
 	if (_expr1 != _expr2) { \
-		ERROR("Expression: %s == %s is false: %juu/%jdd != %juu/%jdd", \
-				expr1str, expr2str, _expr1, (intmax_t)_expr1, _expr2, (intmax_t)_expr2); \
+		ERROR("Expression: %s == %s is false: (%s)%juu/%jdd != (%s)%juu/%jdd", \
+				expr1str, expr2str, \
+				typename(expr1), _expr1, (intmax_t)_expr1, \
+				typename(expr2), _expr2, (intmax_t)_expr2); \
 		test_failed = 1; \
 	} else { \
 		LOG("%s == %s", expr1str, expr2str); \
@@ -74,6 +95,43 @@ static const char RESET[] = "\E(B\E[m";
 		TEST_EQ_IN(_value, #expr ".value", value, #value); \
 		TEST_EQ_IN(_overflow, #expr ".overflow", overflow, #overflow); \
 } while(0)
+
+#define TEST_OP3(RESTYPE, OP, a, b, val, o)  do { \
+	LOG("TEST_OP3 ckd_%s(%s, (%s)%s, (%s)%s) =? {%s, %s}", \
+		#OP, #RESTYPE, typename(a), #a, typename(b), #b, #val, #o); \
+	RESTYPE _var = 0; \
+	TEST_EQ(ckd_##OP(&_var, a, b), o); \
+	TEST_EQ(_var, val); \
+} while(0)
+
+#define TEST_COP3(KEY, OP, a, b, val, o)  do { \
+	LOG("TEST_OP3 ckd_%s(ckd_%s_t, (%s)%s, (%s)%s) =? {%s, %s}", \
+		#OP, #KEY, typename(a), #a, typename(b), #b, #val, #o); \
+	ckd_##KEY##_t _var = {0}; \
+	TEST_EQ(ckd_##OP(&_var, a, b), o); \
+	TEST_EQ(ckd_overflow(_var), o); \
+	TEST_EQ(ckd_value(_var), val); \
+} while(0)
+
+#define FOREACH_TYPE(M, ...) \
+	M(schar, signed char, ##__VA_ARGS__); \
+	M(uchar, unsigned char, ##__VA_ARGS__); \
+	M(shrt, short, ##__VA_ARGS__); \
+	M(ushrt, unsigned short, ##__VA_ARGS__); \
+	M(int, int, ##__VA_ARGS__); \
+	M(uint, unsigned, ##__VA_ARGS__); \
+	M(long, long, ##__VA_ARGS__); \
+	M(ulong, unsigned long, ##__VA_ARGS__); \
+	M(llong, long long, ##__VA_ARGS__); \
+	M(ullong, unsigned long long, ##__VA_ARGS__);
+
+#define FOREACH_PROMOTEDTYPE(M, ...) \
+	M(int, int, ##__VA_ARGS__); \
+	M(uint, unsigned, ##__VA_ARGS__); \
+	M(long, long, ##__VA_ARGS__); \
+	M(ulong, unsigned long, ##__VA_ARGS__); \
+	M(llong, long long, ##__VA_ARGS__); \
+	M(ullong, unsigned long long, ##__VA_ARGS__);
 
 #define CKDEND() exit(!test_failed ? EXIT_SUCCESS : EXIT_FAILURE)
 

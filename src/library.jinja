@@ -63,9 +63,6 @@
     {% set _ = ALLTYPES.append(d) %}
 {% endfor %}
 
-{%- set macrocontnl = ", \\
-" %}
-
 {#- Replace $OP for operation #}
 {% macro foreach_OP() %}
     {% for OP in OPS %}
@@ -74,37 +71,56 @@
 {% endmacro %}
 
 {#- Replace $TYPE for operation #}
-{% macro foreach_TYPE(inmacro=0, end="", arg=0, repl="$TYPE", alsocprefix=0) %}
-    {% for N, T, DETECT, MAX, MIN in TYPES %}
+{% macro foreach_TYPE(array=TYPES, char=0, inmacro=0, end="", arg=0, repl="$TYPE", alsocprefix=0, promotedonly=0) %}
+    {% set macrocontnl = (", \\\n" | format) if inmacro else "" %}
+    {# #}
+    {% if char %}
         {% set ctx = {
-                "IDX": loop.index,
-                "HALFIDX": (((loop.index / 2) | int) * 2) | int,
-                "signed": ("0" if MIN == "0" else "1"),
-                "SIGNED": ("0" if MIN == "0" else "1"),
-                "MAX": MAX,
-                "MIN": MIN,
+            "N": "char",
+            "T": "char",
+            "C": "ckd_char_t",
+            "IDX": -1,
+            "HALFIDX": -1,
+            "MAX": "CHAR_MAX",
+            "MIN": "CHAR_MIN",
+            "LAST": 0,
+            "PROMOTED": 0,
+            "SIGNED": "CHAR_MAX == SCHAR_MAX",
+            "CHAR": 1,
             }
         %}
-        {% if alsocprefix %}
-            {% if arg %}
-                {% set out = caller(ctx) %}
-            {% else %}
-                {% set out = caller() %}
-            {% endif %}
-            {{- out | replace(repl, "c"~N) -}}
-            {%- if inmacro -%}
+        {% set out = (caller(ctx) if arg else caller()) %}
+        {{- out | replace(repl, ctx.N) if (repl | length) else out -}}
+        {{- macrocontnl -}}
+    {% endif %}
+    {# #}
+    {% for N, T, DETECT, MAX, MIN in array %}
+        {% set ctx = {
+            "N": N,
+            "T": T,
+            "C": "ckd_"~N~"_t",
+            "DETECT": DETECT,
+            "IDX": loop.index0,
+            "HALFIDX": (loop.index0 / 2) | int,
+            "SIGNED": (0 if MIN == "0" else 1),
+            "MAX": MAX,
+            "MIN": MIN,
+            "LAST": loop.last,
+            "PROMOTED": (loop.index0 / 2) >= 2,
+            "MACRONL": macrocontnl if not loop.last else "",
+            "CHAR": 0,
+            }
+        %}
+        {% if not promotedonly or ctx.PROMOTED %}
+            {% if alsocprefix %}
+                {% set out = (caller(ctx) if arg else caller()) %}
+                {{- out | replace(repl, N) if (repl | length) else out -}}
                 {{- macrocontnl -}}
-            {%- endif -%}
-        {% endif %}
-        {% if arg %}
-            {% set out = caller(ctx) %}
-        {% else %}
-            {% set out = caller() %}
-        {% endif %}
-        {{- out | replace(repl, N) -}}
-        {%- if inmacro -%}
+            {% endif %}
+            {% set out = (caller(ctx) if arg else caller()) %}
+            {{- out | replace(repl, N) if (repl | length) else out -}}
             {{- macrocontnl if not loop.last else end -}}
-        {%- endif -%}
+        {% endif %}
     {%- endfor %}
 {% endmacro -%}
 

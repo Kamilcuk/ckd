@@ -12,6 +12,7 @@
 // Header [[[
 #ifndef CKDINT_H_
 #error  This is internal header
+#include "../ckdint.h"
 #endif
 
 #include <stdbool.h>
@@ -30,7 +31,7 @@
 #endif
 #endif  // __SIZEOF_INT128__
 
-{% call() L.foreach_TYPE() %}
+{% call() L.foreach_TYPE(promotedonly=1) %}
 typedef struct {
 	/// Represents the stored value.
 	_ckd_$TYPE v;
@@ -42,22 +43,26 @@ typedef struct {
 {% endcall %}
 
 // ]]]
-{% for N, T, DETECT, MAX, MIN in L.TYPES %}
-	{% if MIN != "0" %}{# Only signed types #}
-		{% set HALFIDX = ((((loop.index / 2) | int) * 2) | int) %}
+{% call(V) L.foreach_TYPE(repl="", arg=1, promotedonly=1) %}
+	{# Exclude char and short, they are promoted to int #}
+	{# Only signed types, one go for unsigned&signed types. #}
+	{% if V.SIGNED %}
 		{# Signed key #}
-		{% set S = N %}
+		{% set S = V.N %}
 		{# Unsigned key #}
-		{% set U = "uchar" if "schar" in N else "u"~N %}
+		{% set U = "uchar" if "schar" in S else "u"~S %}
 		{# The normal key is set to signed #}
 		{% set N = S %}
 		{# MAX and MIN and signed maximum and minimum. UMAX is unsigned maximum #}
-		{% set UMAX = "UCHAR_MAX" if "schar" in N else "U"~MAX %}
+		{% set UMAX = "UCHAR_MAX" if "schar" in N else "U"~V.MAX %}
+		{% set MAX = V.MAX %}
+		{% set MIN = V.MIN %}
+		{% set HALFIDX = V.HALFIDX %}
 // Init macros [[[
 // Signed minimum and maximum!
 // TODO: Add _ckd_ prefix to S and U symbols.
-#define S    {{T}}
-#define U    unsigned {{ "char" if "schar" in N else T }}
+#define S    {{V.T}}
+#define U    unsigned {{ "char" if "schar" in S else V.T }}
 #define _ckd_SGN  ((U)1 << (sizeof(U) * CHAR_BIT - 1))
 {# // __CDT__PARSER__
 #undef S
@@ -211,17 +216,31 @@ _ckd_fchpnt bool _ckd_mul_usu_{{N}}(U u1, U s2, U *res) {
 
 {% call() L.foreach_OP() %}
 _ckd_fchpnt bool _ckd_$OP_{{N}}_choose(bool asigned, bool bsigned, bool ressigned, U a, U b, U *res) {
-	static bool (*const _ckd_$OP_{{N}}_choose_arr[])(U, U, U*) = {
-		&_ckd_$OP_uuu_{{N}},
-		&_ckd_$OP_uus_{{N}},
-		&_ckd_$OP_usu_{{N}},
-		&_ckd_$OP_uss_{{N}},
-		&_ckd_$OP_suu_{{N}},
-		&_ckd_$OP_sus_{{N}},
-		&_ckd_$OP_ssu_{{N}},
-		&_ckd_$OP_sss_{{N}},
-	};
-	return _ckd_$OP_{{N}}_choose_arr[asigned << 2 | bsigned << 1 | ressigned](a, b, res);
+	if (asigned) {
+		if (bsigned) {
+			if (ressigned) {
+				return _ckd_$OP_sss_{{N}}(a, b, res);
+			}
+			return _ckd_$OP_ssu_{{N}}(a, b, res);
+		} else {
+			if (ressigned) {
+				return _ckd_$OP_sus_{{N}}(a, b, res);
+			}
+		}
+		return _ckd_$OP_suu_{{N}}(a, b, res);
+	} else {
+		if (bsigned) {
+			if (ressigned) {
+				return _ckd_$OP_uss_{{N}}(a, b, res);
+			}
+			return _ckd_$OP_usu_{{N}}(a, b, res);
+		} else {
+			if (ressigned) {
+				return _ckd_$OP_uus_{{N}}(a, b, res);
+			}
+		}
+	}
+	return _ckd_$OP_uuu_{{N}}(a, b, res);
 }
 
 _ckd_fconst _ckd_c{{S}} _ckd_$OP_2_{{S}}(_ckd_arg_{{S}} a, _ckd_arg_{{S}} b) {
@@ -236,31 +255,64 @@ _ckd_fconst _ckd_c{{U}} _ckd_$OP_2_{{U}}(_ckd_arg_{{U}} a, _ckd_arg_{{U}} b) {
 	return tmp;
 }
 
-	{% call(A) L.foreach_TYPE(arg=1) %}
+	{% call(T) L.foreach_TYPE(char=1, arg=1) %}
+{#
+/*
+	Do calculations on two promoted signed types and represent the result in any $TYPE.
+	These functions have a little bit of logic around `#if` macros to remove them.
+	First, we need to remove the `#if` and `#endif` if one of types is int128, cause preprocessor can't handle int128.
+	Then, we can remove the check when resulting type is greater, like `int * int -> long`.
+	We can also remove the check when we know it's true, like `int * int -> int`.
+*/
+#}
+		{% set noint128 = "int128" not in S and "int128" not in T.T %}
 _ckd_fchpnt bool _ckd_$OP_3_{{S}}_to_$TYPE(_ckd_$TYPE *ret, _ckd_arg_{{S}} a, _ckd_arg_{{S}} b) {
 	_ckd_{{U}} tmp;
-	const bool opovf = _ckd_$OP_{{N}}_choose(a.s, b.s, {{A.SIGNED}}, a.v, b.v, &tmp)
-#if {{MIN}} < {{A.MIN}}
-			|| (S) {{A.MIN}} > (S) tmp
+	const bool opovf = _ckd_$OP_{{N}}_choose(a.s, b.s, {{T.SIGNED}}, a.v, b.v, &tmp)
+	{% if not T.SIGNED or (T.SIGNED and T.HALFIDX <= HALFIDX) %}
+		{% if MIN != T.MIN %}
+			{% set protect = not ( (T.MIN != "0" and MIN == "0") or (T.MIN == "0" and MIN != "0") ) and noint128 %}
+			{% if protect %}
+#if {{MIN}} < {{T.MIN}}
+			{% endif %}
+			|| (S) {{T.MIN}} > (S) tmp
+			{% if protect %}
 #endif
-#if {{MAX}} > {{A.MAX}}
-			|| (S) tmp > (S) {{A.MAX}}
+			{% endif %}
+		{% endif %}
+		{% if MAX != T.MAX %}
+			{% if noint128 %}
+#if {{MAX}} > {{T.MAX}}
+			{% endif %}
+			|| (S) tmp > (S) {{T.MAX}}
+			{% if noint128 %}
 #endif
+			{% endif %}
+		{% endif %}
+	{% endif %}
 			|| a.o || b.o;
 	*ret = (_ckd_$TYPE) tmp;
 	return opovf;
 }
 _ckd_fchpnt bool _ckd_$OP_3_{{U}}_to_$TYPE(_ckd_$TYPE *ret, _ckd_arg_{{U}} a, _ckd_arg_{{U}} b) {
 	_ckd_{{U}} tmp;
-	const bool opovf = _ckd_$OP_{{N}}_choose(a.s, b.s, {{A.SIGNED}}, a.v, b.v, &tmp)
-#if {{MAX}} > {{A.MAX}}
-			|| (U) tmp > (U) {{A.MAX}}
+	const bool opovf = _ckd_$OP_{{N}}_choose(a.s, b.s, {{T.SIGNED}}, a.v, b.v, &tmp)
+	{% if T.SIGNED or (not T.SIGNED and T.HALFIDX <= HALFIDX) %}
+			{% set protect = not T.SIGNED and noint128 %}
+			{% if protect %}
+#if {{UMAX}} > {{T.MAX}}
+			{% endif %}
+			|| (U) tmp > (U) {{T.MAX}}
+			{% if protect %}
 #endif
-			|| a.o || b.o;
+			{% endif %}
+	{% endif %}
+			|| a.o || b.o; // {{T.SIGNED}} {{T.HALFIDX}} {{HALFIDX}}
 	*ret = (_ckd_$TYPE) tmp;
 	return opovf;
 }
 	{% endcall %}
+
 {% endcall %}
 
 // ]]]
@@ -270,23 +322,28 @@ _ckd_fchpnt bool _ckd_$OP_3_{{U}}_to_$TYPE(_ckd_$TYPE *ret, _ckd_arg_{{U}} a, _c
 #undef _ckd_SGN
 // ]]]
 	{% endif %}
-{% endfor %}
+{% endcall %}
+// Additional 3 argument conversions [[[
+{% call() L.foreach_OP() %}
+	{% call(A) L.foreach_TYPE(promotedonly=1, arg=1) %}
+		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2", arg=1) %}
+			{% if B.CHAR or not ((A.HALFIDX <= B.HALFIDX and (A.SIGNED and not B.SIGNED)) or (A.HALFIDX < B.HALFIDX)) %}
+_ckd_fchpnt bool _ckd_$OP_3_$TYPE_to_c$TYPE2(_ckd_c$TYPE2 *ret, _ckd_arg_$TYPE a, _ckd_arg_$TYPE b) {
+	ckd_overflow(*ret) = _ckd_$OP_3_$TYPE_to_$TYPE2(&ckd_value(*ret), a, b); // {{A.HALFIDX}} {{B.HALFIDX}} {{A.SIGNED}} {{B.SIGNED}}
+	return ckd_overflow(*ret);
+}
+			{% endif %}
+		{% endcall%}
+	{% endcall %}
+{% endcall %}
+// ]]]]
 // Helper macros [[[
 
-/**
- * @define _ckd_issigned(T)
- * @param T Any integer type or checked integer type.
- * @return 1 if type is signed, 0 otherwise.
- */
-#define _ckd_issigned(T) \
-		_Generic((T), \
-{% call(D) L.foreach_TYPE(inmacro=1, arg=1) %}
-		_ckd_$TYPE:  {{ D.SIGNED }}, \
-		_ckd_c$TYPE: {{ D.SIGNED }}
-{%- endcall %})
+struct _ckd_invalid_;
+void _ckd_invalid(struct _ckd_invalid_);
 
-{% call() L.foreach_TYPE() %}
-	{% call(T2) L.foreach_TYPE(repl="$TYPE2", arg=1) %}
+{% call() L.foreach_TYPE(promotedonly=1) %}
+	{% call(T2) L.foreach_TYPE(repl="$TYPE2", char=1, arg=1) %}
 _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 	const _ckd_arg_$TYPE _ckd_ret = { ckd_value(_ckd_v), ckd_overflow(_ckd_v), {{T2.SIGNED}} }; return _ckd_ret;
 }
@@ -311,10 +368,10 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
  */
 #define _ckd_arg(TO, FROM) \
 			_Generic(_ckd_ctypeof(TO), \
-	{% call () L.foreach_TYPE(inmacro=1) %}
+	{% call() L.foreach_TYPE(promotedonly=1, inmacro=1) %}
 			_ckd_c$TYPE: \
 				_Generic(_ckd_ctypeof(FROM), \
-		{% call() L.foreach_TYPE(inmacro=1, repl="$TYPE2") %}
+		{% call() L.foreach_TYPE(char=1, inmacro=1, repl="$TYPE2") %}
 				_ckd_c$TYPE2: _ckd_c$TYPE2_to_arg_$TYPE
 		{%- endcall %})
 	{%- endcall %})(_ckd_toct(FROM))
@@ -324,21 +381,29 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE(_ckd_c$TYPE2 _ckd_v) {
 {% call() L.foreach_OP() %}
 
 #define _ckd_$OP_3_in(T, r, a, b) \
-			_Generic(T, \
-	{% call() L.foreach_TYPE(inmacro=1) %}
-			_ckd_$TYPE: _Generic(*(r), \
-		{% call() L.foreach_TYPE(inmacro=1, repl="$TYPE2") %}
-				_ckd_$TYPE2: _ckd_$OP_3_$TYPE_to_$TYPE2
-		{%- endcall %})
-	{%- endcall %})(r, _ckd_arg(T, a), _ckd_arg(T, b))
+			_Generic(T \
+	{% call(A) L.foreach_TYPE(promotedonly=1, arg=1) %}
+			,_ckd_$TYPE: _Generic(*(r) \
+		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2", arg=1) %}
+			{% if (A.HALFIDX <= B.HALFIDX and (A.SIGNED and not B.SIGNED)) or (A.HALFIDX < B.HALFIDX) %}
+				,_ckd_$TYPE2:  _ckd_invalid \
+				,_ckd_c$TYPE2: _ckd_invalid \
+			{% else %}
+				,_ckd_$TYPE2:  _ckd_$OP_3_$TYPE_to_$TYPE2 \
+				,_ckd_c$TYPE2: _ckd_$OP_3_$TYPE_to_c$TYPE2 \
+			{% endif %}
+		{% endcall %}
+				) \
+	{% endcall %}
+			)(r, _ckd_arg(T, a), _ckd_arg(T, b))
 
 #define _ckd_$OP_3(r, a, b) \
-		_ckd_$OP_3_in(ckd_value(_ckd_ctypeof(a)) + ckd_value(_ckd_ctypeof(b)) + *(r), r, a, b)
+		_ckd_$OP_3_in(ckd_value(_ckd_ctypeof(a)) + ckd_value(_ckd_ctypeof(b)) + ckd_value(_ckd_ctypeof(*(r))), r, a, b)
 
 #define _ckd_$OP_2_in(T, a, b) \
 			_Generic(T, \
-	{% call() L.foreach_TYPE(inmacro=1) %}
-			_ckd_$TYPE: _ckd_$OP_2_$TYPE
+	{% call() L.foreach_TYPE(promotedonly=1, inmacro=1) %}
+		_ckd_$TYPE: _ckd_$OP_2_$TYPE
 	{%- endcall %})(_ckd_arg(T, a), _ckd_arg(T, b))
 
 #define _ckd_$OP_2(a, b) \

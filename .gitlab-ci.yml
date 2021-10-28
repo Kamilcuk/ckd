@@ -3,7 +3,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   CMAKE_BUILD_TYPE: Release
 
-icc_test:
+icc:
   tags:
     - perun
   image:
@@ -18,7 +18,7 @@ icc_test:
     - pip3 install jinja2
     - make test
 
-gcc_test:
+gcc:
   image: registry.gitlab.com/kamcuk/builder
   variables:
     CC: gcc
@@ -30,7 +30,7 @@ gcc_test:
     paths:
       - include
 
-clang_test:
+clang:
   image: registry.gitlab.com/kamcuk/builder
   variables:
     CC: clang
@@ -38,8 +38,14 @@ clang_test:
     - pacman -Sy --noconfirm python-jinja
     - make test
 
-alpine_test:
+alpine:
   image: registry.gitlab.com/kamcuk/builder:alpine
   script:
     - apk add py3-jinja2
     - make test
+
+coverage:
+  image: registry.gitlab.com/kamcuk/builder
+  script:
+    - pacman -Sy --noconfirm python-jinja
+    - make coverage

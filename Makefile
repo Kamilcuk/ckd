@@ -1,22 +1,29 @@
 MAKEFLAGS = -rR --no-print-directories
 .NOTPARALLEL:
 
+ifeq ($(shell hash ninja 2>&1),)
+CONFARGS = -GNinja
+endif
+
 # Path to build directory
-B ?= _build/$(CC)
+BSUF ?= $(CC)
+B ?= _build/$(BSUF)
 F ?=
 
 all: test
 
 config:
-	cmake -S. -B$(B) -DCKD_DEV=1 $(ARGS)
+	cmake -S. -B$(B) -DCKD_DEV=1 $(CONFARGS) $(ARGS)
 build: config
 	cmake --build $(B) -j
 build_gen: config
 	cmake --build $(B) --target ckdint_gen
 test: build
-	( cd $(B) && ctest -V $(if $(value R),-R "$R") $(if $F,--rerun-failed --output-on-failure -j1) )
+	( cd $(B) && ctest $(if $(value R),-R "$R") $(if $F,--rerun-failed -j1) --output-on-failure )
 	wc $(B)/include/*.h $(B)/include/*/*.h
 clean:
+	rm -rf $(B)
+distclean:
 	rm -rf _build
 
 lint: build_gen
@@ -24,6 +31,10 @@ lint: build_gen
 		--filter=-whitespace/tab,-runtime/int,-readability/casting,-readability/todo,-build/header_guard \
 		--linelength=150 \
 		*.h */*.h
+
+coverage:
+	$(MAKE) BSUF=coverage ARGS=-DCKD_COVERAGE=1
+	gcovr -r $(PWD) -e test -f _build/coverage/include -j $$(nproc)
 
 ###############################################################################
 

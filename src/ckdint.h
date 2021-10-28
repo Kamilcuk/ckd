@@ -16,7 +16,11 @@
 #include <limits.h>
 
 #ifndef _ckd_static
+#ifdef CKD_COVERAGE
+#define _ckd_static  static __attribute__((__noinline__, __used__))
+#else
 #define _ckd_static  static inline
+#endif
 #endif
 // _ckd_fchpnt - function changes pointer
 // _ckd_fconst - function only returns values
@@ -34,20 +38,20 @@
 // ]]]
 // Declare checked integer types [[[
 
-{%- for N, T, DETECT, MAX, MIN in L.TYPES %}
+{%- call(V) L.foreach_TYPE(char=1, arg=1) %}
 
-/// @brief A checked integer type for storing value of type {{T}}.
-typedef struct _ckd_{{N}}_t {
+/// @brief A checked integer type for storing value of type {{V.T}}.
+typedef struct _ckd_{{V.N}}_t {
     /// @brief The stored value.
-    {{T}} _vaLue;
+    {{V.T}} _vaLue;
     /// @brief The overflow flag.
     bool _oveRflow;
-} ckd_{{N}}_t;
+} ckd_{{V.N}}_t;
 
-#define _ckd_{{N}}   {{T}}
-#define _ckd_c{{N}}  ckd_{{N}}_t
+#define _ckd_{{V.N}}   {{V.T}}
+#define _ckd_c{{V.N}}  ckd_{{V.N}}_t
 
-{% endfor -%}
+{% endcall %}
 
 // ]]]
 // Standard integer types aliases [[[
@@ -94,11 +98,10 @@ using an operation that overflowed or suffered truncation or misinterpretation o
 
 // ]]]
 // ckd_mk_* functions [[[
-{% for N, T, _, _, _ in L.ALLTYPES %}
-
+{% call(V) L.foreach_TYPE(arg=1, array=L.ALLTYPES, char=1) %}
 /**
- * @brief This function constructs a checked integer type ckd_{{N}}_t
- * given an unchecked integer of type {{T}} and an overflow flag.
+ * @brief This function constructs a checked integer type ckd_{{V.N}}_t
+ * given an unchecked integer of type {{V.T}} and an overflow flag.
  * If the overflow flag is true, the value is assumed to have involved overflow,
  * truncation, or  misinterpretation of sign.* Otherwise the value is assumed to
  * be mathematically correct.
@@ -107,10 +110,10 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @return Return a checked type that represents the value indicated by value and the exact
  * state indicated by overflow.
  */
-_ckd_fconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool overflow) {
-    const ckd_{{N}}_t tmp = {value, overflow}; return tmp;
+_ckd_fconst ckd_{{V.N}}_t ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
+    const ckd_{{V.N}}_t tmp = {value, overflow}; return tmp;
 }
-{% endfor %}
+{% endcall %}
 
 #define ckd_mk(value, overflow) \
 		_Generic((value), \
@@ -121,7 +124,7 @@ _ckd_fconst ckd_{{N}}_t ckd_mk_{{N}}_t({{T}} value, bool overflow) {
 // ]]]
 // Macro helpers [[[
 
-{% call() L.foreach_TYPE() %}
+{% call() L.foreach_TYPE(char=1) %}
 _ckd_fconst _ckd_c$TYPE _ckd_ctypeof_$TYPE(void)  { const _ckd_c$TYPE ret = {0}; return ret; }
 _ckd_fconst _ckd_c$TYPE _ckd_ctypeof_c$TYPE(void) { const _ckd_c$TYPE ret = {0}; return ret; }
 {% endcall %}
@@ -136,12 +139,12 @@ _ckd_fconst _ckd_c$TYPE _ckd_ctypeof_c$TYPE(void) { const _ckd_c$TYPE ret = {0};
  */
 #define _ckd_ctypeof(X) \
         _Generic((X), \
-{% call() L.foreach_TYPE(inmacro=1) %}
+{% call() L.foreach_TYPE(char=1, inmacro=1) %}
         _ckd_c$TYPE: _ckd_ctypeof_c$TYPE, \
         _ckd_$TYPE:  _ckd_ctypeof_$TYPE
 {%- endcall %})()
 
-{% call() L.foreach_TYPE() %}
+{% call() L.foreach_TYPE(char=1) %}
 _ckd_fconst _ckd_c$TYPE _ckd_toct_$TYPE(_ckd_$TYPE v) { return ckd_mk_$TYPE_t(v, 0); }
 _ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
 {% endcall %}
@@ -156,7 +159,7 @@ _ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
  */
 #define _ckd_toct(X) \
         _Generic((X), \
-{% call() L.foreach_TYPE(inmacro=1) %}
+{% call() L.foreach_TYPE(char=1, inmacro=1) %}
         _ckd_c$TYPE: _ckd_toct_c$TYPE, \
         _ckd_$TYPE:  _ckd_toct_$TYPE
 {%- endcall %})(X)

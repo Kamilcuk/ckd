@@ -44,16 +44,16 @@ outf = open(sys.argv.pop(1), 'w')
 
 env = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(os.path.abspath(__file__))),
+    undefined=jinja2.StrictUndefined,
     autoescape=False,
     trim_blocks=True,
     lstrip_blocks=True
 )
 env.tests['is_re_match'] = is_re_match
 env.tests['NISSIGNED'] = NISSIGNED
+env.globals['HAVE_UINT128'] = HAVE_UINT128
 
 print(
-    env.get_template(inputfile).render(
-        HAVE_UINT128=HAVE_UINT128
-    ),
+    env.get_template(inputfile).render(),
     file=outf,
 )

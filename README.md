@@ -2,7 +2,8 @@
 
 Implementation of [Towards Integer Safety](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n2792.pdf).
 
-Generated headers are available from Gitlab CI artefacts: [browse](https://gitlab.com/Kamcuk/ckd/-/jobs/artifacts/master/browse?job=gcc_test) [download](https://gitlab.com/Kamcuk/ckd/-/jobs/artifacts/master/download?job=gcc_test).
+The library is header only.
+Generated headers are available from Gitlab CI artefacts: [browse](https://gitlab.com/Kamcuk/ckd/-/jobs/artifacts/master/browse?job=gcc) [download](https://gitlab.com/Kamcuk/ckd/-/jobs/artifacts/master/download?job=gcc).
 
 # Building
 

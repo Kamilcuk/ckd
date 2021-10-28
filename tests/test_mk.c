@@ -3,6 +3,8 @@
 #define T(KEY, TYPE)  do{ \
 		ckd_##KEY##_t tmp = ckd_mk((TYPE)__LINE__, __LINE__%2); \
 		CKDTEST(tmp, __LINE__, __LINE__%2); \
+		ckd_##KEY##_t tmp2 = ckd_mk_##KEY##_t((TYPE)__LINE__, __LINE__%2); \
+		CKDTEST(tmp2, __LINE__, __LINE__%2); \
 	}while(0)
 
 #define TT(KEY) T(KEY, KEY##_t)

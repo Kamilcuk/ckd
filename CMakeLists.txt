@@ -17,6 +17,19 @@ if(CKD_DEV)
       -Wall -Wextra
     )
   endif()
+  if(CKD_COVERAGE)
+    add_compile_options(
+      -Werror
+      -Werror=overflow
+      -O0
+      -g
+      -fprofile-arcs
+      -ftest-coverage
+    )
+    add_compile_definitions(
+      CKD_COVERAGE=1
+    )
+  endif()
 endif()
 
 ###############################################################################
