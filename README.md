@@ -14,6 +14,10 @@ Prerequisites:
 
 Build with cmake.
 
+# Using from CMake
+
+Hopefully `add_subdirectory()` this directory or see ./sampleusage/CMakeLists.txt.
+
 # Written
 
 Written by Kamil Cukrowski 2021
