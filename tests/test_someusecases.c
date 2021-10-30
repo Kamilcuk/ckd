@@ -53,7 +53,7 @@ int append3_2(size_t bufsize) {
 }
 
 
-int main() {
+void test() {
 	TEST_EQ(my_calloc(1, 2), 2);
 	TEST_EQ(my_calloc(SIZE_MAX, 1), (size_t)-1);
 	TEST_EQ(my_calloc2(1, 2), 2);
@@ -69,6 +69,4 @@ int main() {
 	TEST_EQ(append3_2(SIZE_MAX - 1), -2);
 	TEST_EQ(append3_2(SIZE_MAX - 2), -3);
 
-
-	CKDEND();
 }

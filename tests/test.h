@@ -20,6 +20,11 @@
 #endif  // __SIZEOF_INT128__
 
 #define TC(x)  ckd_##x##_t: "ckd_"#x"_t"
+#ifdef HAVE_INT128
+#define TC_INT128()  __int128_t: "int128", __uint128_t: "uint128", TC(int128), TC(uint128),
+#else
+#define TC_INT128()
+#endif
 #define typename(x) _Generic(x,                                                 \
             _Bool: "bool",                  unsigned char: "unsigned char",          \
              char: "char",                     signed char: "signed char",            \
@@ -36,7 +41,8 @@
 		   TC(int), TC(uint), \
 		   TC(long), TC(ulong), \
 		   TC(llong), TC(ullong), \
-          default: "other")
+		   TC_INT128() \
+		  default: "other")
 
 bool test_failed = 0;
 
@@ -72,8 +78,8 @@ static const char RESET[] = "\E(B\E[m";
 #define TEST(expr)  INTEST(expr, #expr)
 
 #define TEST_EQ_IN(expr1, expr1str, expr2, expr2str) do{ \
-	uintmax_t _expr1 = (expr1); \
-	uintmax_t _expr2 = (expr2); \
+	uintmax_t _expr1 = (uintmax_t)(expr1); \
+	uintmax_t _expr2 = (uintmax_t)(expr2); \
 	if (_expr1 != _expr2) { \
 		ERROR("Expression: %s == %s is false: (%s)%juu/%jdd != (%s)%juu/%jdd", \
 				expr1str, expr2str, \
@@ -89,8 +95,8 @@ static const char RESET[] = "\E(B\E[m";
 
 
 #define CKDTEST(expr, value, overflow) do { \
-		uintmax_t _value = ckd_value(expr); \
-		uintmax_t _overflow = ckd_overflow(expr); \
+		uintmax_t _value = (uintmax_t)ckd_value(expr); \
+		uintmax_t _overflow = (uintmax_t)ckd_overflow(expr); \
 		LOG("Testing expression %s -> %s", #expr, typename(ckd_value(expr))); \
 		TEST_EQ_IN(_value, #expr ".value", value, #value); \
 		TEST_EQ_IN(_overflow, #expr ".overflow", overflow, #overflow); \
@@ -133,6 +139,11 @@ static const char RESET[] = "\E(B\E[m";
 	M(llong, long long, ##__VA_ARGS__); \
 	M(ullong, unsigned long long, ##__VA_ARGS__);
 
-#define CKDEND() exit(!test_failed ? EXIT_SUCCESS : EXIT_FAILURE)
+void test(void);
 
-#endif
+int main() {
+	test();
+	return !test_failed ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+#endif  // TESTS_TEST_H_

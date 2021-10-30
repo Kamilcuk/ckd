@@ -1,5 +1,5 @@
 #include "test.h"
-int main() {
+void test() {
 	int a; bool b;
 
 	CKDTEST(ckd_add(2, 3), 5, 0);
@@ -38,13 +38,7 @@ int main() {
 	TEST(b == 1);
 
 	uint64_t u64 = 2;
-	// !ONLYSAMETYPES calls _ckd_mul_2_uint64_uin64_int
-	//  ONLYSAMETYPES calls _ckd_mul_2_uint64_uint64_uint64
 	CKDTEST(ckd_mul(u64, 2), 4, 0);
 
-	// !ONLYSAMETYPES calls _ckd_mul_2_llong_long_llong
-	//  ONLYSAMETYPES calls _ckd_mul_2_long_long_long
 	CKDTEST(ckd_mul(1l, 2ll), 2, 0);
-
-	CKDEND();
 }

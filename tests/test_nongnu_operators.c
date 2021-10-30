@@ -1,5 +1,6 @@
-#include "ckdint.h"
+#include <ckdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static unsigned error = 0;
 
@@ -62,7 +63,7 @@ void super_test() { \
 // Run tests for specific type cases
 #define T(TYPE, OP, X,x, Y,y, Z,z) \
     do{ \
-		TIN(__builtin_##OP##_overflow, _ckd_##OP##_##x##y##z##_##TYPE, OP, X, Y, Z); \
+		TIN(__builtin_##OP##_overflow, _CKD_##OP##_##x##y##z##_##TYPE, OP, X, Y, Z); \
 		super_test(); \
 	} while(0)
 
@@ -77,7 +78,7 @@ void super_test() { \
     CASE1(llong, X,x, Y,y, Z,z);
 
 int main() {
-#if !CKD_USE_NOGNU || !__GNUC__ || __clang__ || __INTEL_COMPILER
+#if !_CKD_NOGNU_SOURCE || !__GNUC__ || __clang__ || __INTEL_COMPILER
 	// This test is only meaningfull when using non-gnu.
 #else
 #define S long long
@@ -94,5 +95,5 @@ int main() {
 	if (error) {
 		fprintf(stderr, "Got %u errors\n", error);
 	}
-	return error;
+	return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }

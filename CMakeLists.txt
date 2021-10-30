@@ -12,12 +12,35 @@ if(CKD_DEV)
       ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
       ${CMAKE_SOURCE_DIR}/compile_commands.json
 	)
-  if(CMAKE_C_COMPILER_ID MATCHES "GNU")
+  if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    set(_sanitize)
+    if(NOT CKD_COVERAGE)
+      set(_sanitize
+        -fsanitize=undefined,address,pointer-compare,pointer-subtract
+      )
+    endif()
     add_compile_options(
-      -Wall -Wextra
+      -Wall
+      -Wextra
+      -Wwrite-strings
+      -Werror=all
+      -Wfatal-errors
+      ${_sanitize}
+    )
+    add_link_options(
+      ${_sanitize}
+    )
+  endif()
+  if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    add_link_options(
+      # compiler-rt provides symbols for __builtin_*_overflow for clang
+      -rtlib=compiler-rt
     )
   endif()
   if(CKD_COVERAGE)
+    add_compile_definitions(
+      CKD_COVERAGE=1
+    )
     add_compile_options(
       -Werror
       -Werror=overflow
@@ -26,8 +49,8 @@ if(CKD_DEV)
       -fprofile-arcs
       -ftest-coverage
     )
-    add_compile_definitions(
-      CKD_COVERAGE=1
+    link_libraries(
+      gcov
     )
   endif()
 endif()
@@ -35,7 +58,7 @@ endif()
 ###############################################################################
 
 check_type_size("__int128" UINT128 BUILTIN_TYPES_ONLY LANGUAGE C)
-if (HAVE_UINT128)
+if(HAVE_UINT128)
 	set(HAVE_UINT128 1)
 else()
 	set(HAVE_UINT128 0)
@@ -106,6 +129,9 @@ if(BUILD_TESTING)
     string(REGEX REPLACE "\\.c" "" _nn ${tt})
     set(_nn ${PROJECT_NAME}_${_nn})
     add_executable(${_nn} tests/${tt})
+    target_compile_definitions(${_nn} PUBLIC
+      HAVE_UINT128=${HAVE_UINT128}
+    )
     target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
     add_test(NAME ${_nn} COMMAND ${_nn})
     set_tests_properties(${_nn} PROPERTIES
@@ -114,8 +140,11 @@ if(BUILD_TESTING)
 
     set(_nn ${_nn}_nognu)
     add_executable(${_nn} tests/${tt})
+    target_compile_definitions(${_nn} PUBLIC
+      HAVE_UINT128=${HAVE_UINT128}
+    )
     target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
-    target_compile_definitions(${_nn} PUBLIC CKD_USE_NOGNU)
+    target_compile_definitions(${_nn} PUBLIC _CKD_NOGNU_SOURCE)
     add_test(NAME ${_nn} COMMAND ${_nn})
     set_tests_properties(${_nn} PROPERTIES
       LABEL ${PROJECT_NAME}

@@ -9,7 +9,7 @@ static unsigned *pnt() {
 	inc();
 	return &p;
 }
-int main() {
+void test() {
 	x = 0;
 	TEST(ckd_value(ckd_add(inc(), 1u)) == 1);
 	TEST(x == 1);
@@ -21,8 +21,4 @@ int main() {
 	TEST(x == 4);
 	TEST(ckd_add(&p, 1u, inc()) == 0);
 	TEST(x == 5);
-
-#if !CKD_USE_NOGNU
-	CKDEND();
-#endif
 }

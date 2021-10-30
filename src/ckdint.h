@@ -7,71 +7,70 @@
  * SPDX-License-Identifier: MIT + Beerware
  */
 // Header [[[
-#ifndef CKDINT_H_
-#define CKDINT_H_
+#ifndef _CKDINT_H_
+#define _CKDINT_H_
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <limits.h>
 
-#ifndef _ckd_static
+#ifndef _CKD_static
 #ifdef CKD_COVERAGE
-#define _ckd_static  static __attribute__((__noinline__, __used__))
+#define _CKD_static  static __attribute__((__noinline__)) __attribute__((__used__))
 #else
-#define _ckd_static  static inline
+#define _CKD_static  static inline
 #endif
 #endif
-// _ckd_fchpnt - function changes pointer
-// _ckd_fconst - function only returns values
+// _CKD_fchpnt - Function returns value and changes pointer.
+// _CKD_fconst - Function only returns value.
 #if __GNUC__
-#define _ckd_fchpnt  _ckd_static __attribute__((__warn_unused_result__))
-#define _ckd_fconst  _ckd_fchpnt __attribute__((__const__))
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ > 20230000L
-#define _ckd_fconst  _ckd_static [[__nodiscard__]]
-#define _ckd_fchpnt  _ckd_static [[__nodiscard__]]
+#define _CKD_fconst     _CKD_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
+#if __GNUC__ >= 10
+#define _CKD_fchpnt(x)  _CKD_static __attribute__((__warn_unused_result__)) __attribute__((__access__(__write_only__, x)))
 #else
-#define _ckd_fconst  _ckd_static
-#define _ckd_fchpnt  _ckd_static
+#define _CKD_fchpnt(x)  _CKD_static __attribute__((__warn_unused_result__))
 #endif
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ > 20230000L
+#define _CKD_fconst     _CKD_static [[__nodiscard__]]
+#define _CKD_fchpnt(x)  _CKD_static [[__nodiscard__]]
+#else
+#define _CKD_fconst     _CKD_static
+#define _CKD_fchpnt(x)  _CKD_static
+#endif
+
 
 // ]]]
 // Declare checked integer types [[[
-
-{%- call(V) L.foreach_TYPE(char=1, arg=1) %}
-
+{% call(V) L.foreach_TYPE(char=1) %}
 /// @brief A checked integer type for storing value of type {{V.T}}.
-typedef struct _ckd_{{V.N}}_t {
+typedef struct {
     /// @brief The stored value.
-    {{V.T}} _vaLue;
+    {{V.T}} _Value;
     /// @brief The overflow flag.
-    bool _oveRflow;
-} ckd_{{V.N}}_t;
-
-#define _ckd_{{V.N}}   {{V.T}}
-#define _ckd_c{{V.N}}  ckd_{{V.N}}_t
-
+    bool _Overflow;
+} {{V.C}};
 {% endcall %}
-
 // ]]]
 // Standard integer types aliases [[[
 
-{% for N, _, _, MAX, MIN in L.ALIASEDTYPES %}
+{% call(A) L.foreach_TYPE(array=L.ALIASEDTYPES) %}
 /**
- * @define ckd_{{N}}_t
- * @brief Check integer type ckd_{{N}}_t is an alias to one of ckd_*_t basic types.
+ * @define ckd_$TYPE_t
+ * @brief Check integer type ckd_$TYPE_t is an alias to one of ckd_*_t basic types.
  */
-{% endfor %}
+{% endcall %}
 
-{% for N, _, _, MAX, MIN in L.ALIASEDTYPES %}
-    {% for N2, _, _, MAX2, MIN2 in L.BASICTYPES %}
-		{% if (MIN != "0" and MIN2 != "0") or (MIN == "0" and MIN2 == "0") %}
-#if !defined(ckd_{{N}}_t) && defined({{MAX}}) && {{MAX}} == {{MAX2}} && {{MIN}} == {{MIN2}}
-#define ckd_{{N}}_t  ckd_{{N2}}_t
+{% call(A) L.foreach_TYPE(array=L.ALIASEDTYPES) %}
+    {% call(B) L.foreach_TYPE(array=L.BASICTYPES) %}
+		{% if ((A.SIGNED and B.SIGNED) or (not A.SIGNED and not B.SIGNED)) %}
+#if !defined({{A.C}}) && defined({{A.MAX}}) && {{A.MAX}} == {{B.MAX}}{% if A.SIGNED %} && {{A.MIN}} == {{B.MIN}}{% endif %}
+
+#define {{A.C}}  {{B.C}}
 #endif
 		{% endif %}
-    {% endfor %}
-{% endfor %}
+    {% endcall %}
+{% endcall %}
 
 // ]]]
 // Check integer accessors [[[
@@ -84,7 +83,7 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @return The ckd_overflow macro returns true if overflow, truncation, or misinterpretation of sign
  * occurred when x was computed and false otherwise.
  */
-#define ckd_overflow(x)  ((x)._oveRflow)
+#define ckd_overflow(x)  ((x)._Overflow)
 
 /**
  * @define type ckd_value(ckd_type x);
@@ -94,11 +93,11 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @param x One of checked integer types.
  * @return The ckd_value macro returns the value of x.
  */
-#define ckd_value(x)     ((x)._vaLue)
+#define ckd_value(x)     ((x)._Value)
 
 // ]]]
 // ckd_mk_* functions [[[
-{% call(V) L.foreach_TYPE(arg=1, array=L.ALLTYPES, char=1) %}
+{% call(V) L.foreach_TYPE(array=L.ALLTYPES, char=1) %}
 /**
  * @brief This function constructs a checked integer type ckd_{{V.N}}_t
  * given an unchecked integer of type {{V.T}} and an overflow flag.
@@ -110,65 +109,25 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @return Return a checked type that represents the value indicated by value and the exact
  * state indicated by overflow.
  */
-_ckd_fconst ckd_{{V.N}}_t ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
-    const ckd_{{V.N}}_t tmp = {value, overflow}; return tmp;
+_CKD_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
+    const {{V.C}} tmp = {value, overflow}; return tmp;
 }
 {% endcall %}
 
 #define ckd_mk(value, overflow) \
-		_Generic((value), \
-{% call() L.foreach_TYPE(inmacro=1) %}
-        _ckd_$TYPE: ckd_mk_$TYPE_t
-{%- endcall %})(value, overflow)
+		_Generic((value) \
+	{% call(A) L.foreach_TYPE() %}
+        ,{{A.T}}: ckd_mk_$TYPE_t \
+	{% endcall %}
+		)(value, overflow)
 
 // ]]]
 // Macro helpers [[[
-
-{% call() L.foreach_TYPE(char=1) %}
-_ckd_fconst _ckd_c$TYPE _ckd_ctypeof_$TYPE(void)  { const _ckd_c$TYPE ret = {0}; return ret; }
-_ckd_fconst _ckd_c$TYPE _ckd_ctypeof_c$TYPE(void) { const _ckd_c$TYPE ret = {0}; return ret; }
-{% endcall %}
-
-/**
- * @define ckd_ctypeof(x)
- * @brief For any basic type and checked type return a zero intialized
- * associated checked integer type. This is to be used in _Generic expressions.
- * @param X Any integer type or checked integer type.
- * @return A checked integer type the same type of integer type
- * or the value of checked integer type.
- */
-#define _ckd_ctypeof(X) \
-        _Generic((X), \
-{% call() L.foreach_TYPE(char=1, inmacro=1) %}
-        _ckd_c$TYPE: _ckd_ctypeof_c$TYPE, \
-        _ckd_$TYPE:  _ckd_ctypeof_$TYPE
-{%- endcall %})()
-
-{% call() L.foreach_TYPE(char=1) %}
-_ckd_fconst _ckd_c$TYPE _ckd_toct_$TYPE(_ckd_$TYPE v) { return ckd_mk_$TYPE_t(v, 0); }
-_ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
-{% endcall %}
-
-/**
- * @define ckd_toct(x)
- * @brief For any basic type and checked type convert it to associated
- * checked integer type. Integers have overflow equal to 0.
- * @param X Any integer type or checked integer type.
- * @return A checked integer type the same type of integer type
- * or the value of checked integer type.
- */
-#define _ckd_toct(X) \
-        _Generic((X), \
-{% call() L.foreach_TYPE(char=1, inmacro=1) %}
-        _ckd_c$TYPE: _ckd_toct_c$TYPE, \
-        _ckd_$TYPE:  _ckd_toct_$TYPE
-{%- endcall %})(X)
-
 // ]]]
 // Generic macros implementation [[[
 
-// These two should provide _ckd_$OP_3 and _ckd_$OP_2
-#if __GNUC__ > 5 && !CKD_USE_NOGNU
+// These two should provide _CKD_$OP_3 and _CKD_$OP_2
+#if __GNUC__ >= 4 && !_CKD_NOGNU_SOURCE
 #include "ckdint/ckdint_gnu.h"
 #else
 #include "ckdint/ckdint_nognu.h"
@@ -176,17 +135,18 @@ _ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
 
 {% call() L.foreach_OP() %}
 
-/// @define _ckd_$OP_3
+/// @define _CKD_$OP_3
 /// @brief ckd_$OP overflow for 3 arguments.
 /// @see ckd_$OP
 
-/// @define _ckd_$OP_2
+/// @define _CKD_$OP_2
 /// @brief ckd_$OP overflow for 2 arguments.
 /// @see ckd_$OP
 
 /// @brief Macro overload on number of arguments for ckd_$OP
 /// @see ckd_$OP
-#define _ckd_$OP_N(_2, _3, N, ...)  _ckd_$OP_##N
+#define _CKD_$OP_N(_2, _3, N, ...)  _CKD_$OP_##N
+
 /**
  * @define ckd_$OP(...)
  * @brief `bool ckd_$OP(type1 *result, type2 a, type3 b);` or `ckd_type_t ckd_$OP(type1 a, type2 b);`
@@ -208,13 +168,13 @@ _ckd_fconst _ckd_c$TYPE _ckd_toct_c$TYPE(_ckd_c$TYPE v) { return v; }
  * particular type.  For the first form, this particular type is type1. For the second form, this type is the
  * type that would have been used had the operands undergone usual arithmetic conversion. (Section 6.3.1.8)
  */
-#define ckd_$OP(w, ...)  _ckd_$OP_N(__VA_ARGS__, 3, 2)(w, __VA_ARGS__)
+#define ckd_$OP(w, ...)  _CKD_$OP_N(__VA_ARGS__, 3, 2)(w, __VA_ARGS__)
 
 {% endcall %}
 // ]]]
 // EOF [[[
 
-#endif  // CKDINT_H_
+#endif  // _CKDINT_H_
 
 // ]]]
 // vim: ft=c

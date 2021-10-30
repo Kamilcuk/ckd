@@ -25,13 +25,12 @@
 	TEST_OP3(TS, add, (S)MAX, 0, (TS)MAX, MAXoverflow); \
 } while(0)
 
-int main() {
+void test() {
 	FOREACH_TYPESPROP(TEST_S, int, UINT_MAX, INT_MAX, INT_MIN);
 	//TEST_S(long, ULONG_MAX, LONG_MAX, LONG_MIN);
 	//TEST_S(long long, ULLONG_MAX, LLONG_MAX, LLONG_MIN);
 	//TEST_S(char, UCHAR_MAX, SCHAR_MAX, SCHAR_MIN);
 	TEST_OP3(signed char, add, INT_MAX, 0, -1, 1);
 	TEST_OP3(unsigned short, add, UINT_MAX, 0, USHRT_MAX, 1);
-	CKDEND();
 }
 

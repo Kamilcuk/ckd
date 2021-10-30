@@ -1,8 +1,13 @@
 MAKEFLAGS = -rR --no-print-directories
 .NOTPARALLEL:
 
+CONFARGS ?=
 ifeq ($(shell hash ninja 2>&1),)
 CONFARGS = -GNinja
+endif
+TIME ?=
+ifeq ($(shell hash time 2>&1),)
+TIME = time
 endif
 
 # Path to build directory
@@ -15,7 +20,7 @@ all: test
 config:
 	cmake -S. -B$(B) -DCKD_DEV=1 $(CONFARGS) $(ARGS)
 build: config
-	cmake --build $(B) -j
+	$(TIME) cmake --build $(B) -j
 build_gen: config
 	cmake --build $(B) --target ckdint_gen
 test: build

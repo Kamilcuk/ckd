@@ -42,10 +42,10 @@ alpine:
   image: registry.gitlab.com/kamcuk/builder:alpine
   script:
     - apk add py3-jinja2
-    - make test
+    - make test CONFARGS=-UCKD_DEV
 
 coverage:
   image: registry.gitlab.com/kamcuk/builder
   script:
-    - pacman -Sy --noconfirm python-jinja
+    - pacman -Sy --noconfirm python-jinja gcovr
     - make coverage

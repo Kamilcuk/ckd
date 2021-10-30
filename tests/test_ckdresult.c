@@ -1,6 +1,6 @@
 #include "test.h"
 
-int main() {
+void test() {
 	TEST_COP3(llong, mul, LLONG_MAX, (long long)2, (long long)((unsigned long long)LLONG_MAX * 2), 1);
 	TEST_COP3(llong, mul, LLONG_MAX, (long long)1, LLONG_MAX, 0);
 	TEST_COP3(llong, mul, ULLONG_MAX, 1, ULLONG_MAX, 1);
@@ -12,5 +12,4 @@ int main() {
 } while(0)
 	FOREACH_TYPE(TESTIN);
 
-	CKDEND();
 }

@@ -9,7 +9,7 @@
 
 #define TT(KEY) T(KEY, KEY##_t)
 
-int main() {
+void test() {
 	T(schar, signed char);
 	T(uchar, unsigned char);
 	T(shrt, short);
@@ -51,5 +51,4 @@ int main() {
 	T(int_fast64, int_fast64_t);
 	T(uint_fast64, uint_fast64_t);
 	T(size, size_t);
-	CKDEND();
 }

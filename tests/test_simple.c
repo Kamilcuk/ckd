@@ -1,5 +1,8 @@
-#include "test.h"
+#include <ckdint.h>
+#include <stdlib.h>
 int main() {
 	int a;
-	return ckd_add(&a, 1, 1);
+	if (ckd_add(&a, 1, 1) != 0) return EXIT_FAILURE;
+	if (a != 2) return EXIT_FAILURE;
+	return EXIT_SUCCESS;
 }

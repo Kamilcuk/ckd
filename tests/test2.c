@@ -1,6 +1,6 @@
 #include "test.h"
 
-int main() {
+void test() {
 	CKDTEST(ckd_add(-2, 1u), (unsigned)-1, 1);
 	CKDTEST(ckd_add(-2, 1ul), (unsigned long)-1, 1);
 	CKDTEST(ckd_add(-2, 1ull), (unsigned long long)-1, 1);
@@ -14,5 +14,4 @@ int main() {
 	TEST(u == 2);
 	TEST(o == 0);
 
-	CKDEND();
 }

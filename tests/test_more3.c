@@ -68,14 +68,9 @@
 	TEST_OP3(U, mul, (S)-2, (U)3, (U)-6, 1); \
 	TEST_OP3(U, mul, ULLONG_MAX, (unsigned long long)1, (U)ULLONG_MAX, ULLONG_MAX > UMAX); \
 	TEST_OP3(U, mul, ULLONG_MAX, (unsigned long long)0, 0, 0); \
-	\
-	CKDTEST(ckd_add((S)1, (S)1), 2, 0); \
-	CKDTEST(ckd_add((U)1, (U)1), 2, 0); \
-	CKDTEST(ckd_add((S)1, (U)1), 2, 0); \
-	CKDTEST(ckd_add((U)1, (S)1), 2, 0); \
 } while(0)
 
-int main() {
+void test() {
 	TEST_S(short, USHRT_MAX, SHRT_MAX, SHRT_MIN);
 	TEST_S(int, UINT_MAX, INT_MAX, INT_MIN);
 #if !defined(__INTEL_COMPILER)
@@ -84,6 +79,5 @@ int main() {
 	TEST_S(long long, ULLONG_MAX, LLONG_MAX, LLONG_MIN);
 #endif
 	TEST_S(char, UCHAR_MAX, SCHAR_MAX, SCHAR_MIN);
-	CKDEND();
 }
 

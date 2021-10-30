@@ -71,8 +71,9 @@
 {% endmacro %}
 
 {#- Replace $TYPE for operation #}
-{% macro foreach_TYPE(array=TYPES, char=0, inmacro=0, end="", arg=0, repl="$TYPE", alsocprefix=0, promotedonly=0) %}
+{% macro foreach_TYPE(array=TYPES, char=0, inmacro=0, end="", arg=0, repl="$TYPE", promotedonly=0, unsignedonly=0) %}
     {% set macrocontnl = (", \\\n" | format) if inmacro else "" %}
+    {% set repl = repl if (repl | length) else "UNIQUE_STRING_dcf3a9ee-692e-4301-a53b-b25c1179021d" %}
     {# #}
     {% if char %}
         {% set ctx = {
@@ -89,8 +90,7 @@
             "CHAR": 1,
             }
         %}
-        {% set out = (caller(ctx) if arg else caller()) %}
-        {{- out | replace(repl, ctx.N) if (repl | length) else out -}}
+        {{- caller(ctx) | replace(repl, ctx.N) -}}
         {{- macrocontnl -}}
     {% endif %}
     {# #}
@@ -111,14 +111,21 @@
             "CHAR": 0,
             }
         %}
-        {% if not promotedonly or ctx.PROMOTED %}
-            {% if alsocprefix %}
-                {% set out = (caller(ctx) if arg else caller()) %}
-                {{- out | replace(repl, N) if (repl | length) else out -}}
-                {{- macrocontnl -}}
-            {% endif %}
-            {% set out = (caller(ctx) if arg else caller()) %}
-            {{- out | replace(repl, N) if (repl | length) else out -}}
+        {% set _ = ctx.update({
+            "UMAX": ctx.MAX if not ctx.SIGNED else     "UCHAR_MAX" if "schar" in ctx.N else "U"~MAX,
+            "UT":     ctx.T if not ctx.SIGNED else "unsigned char" if "schar" in ctx.N else "unsigned "~ctx.T,
+            "UN":     ctx.N if not ctx.SIGNED else         "uchar" if "schar" in ctx.N else "u"~ctx.N,
+            "ST":     ctx.T if ctx.SIGNED else "signed char" if "uchar" in ctx.N else ( ctx.T | replace("unsigned ", "") ),
+            "SN":     ctx.N if ctx.SIGNED else       "schar" if "uchar" in ctx.N else ( ctx.N | replace("u", "", 1) ),
+            })
+        %}
+        {% set _ = ctx.update({
+            "UC": "ckd_"~ctx.UN~"_t",
+            "SC": "ckd_"~ctx.SN~"_t",
+            })
+        %}
+        {% if (not promotedonly or ctx.PROMOTED) and (not unsignedonly or not ctx.SIGNED) %}
+            {{- caller(ctx) | replace(repl, N) -}}
             {{- macrocontnl if not loop.last else end -}}
         {% endif %}
     {%- endfor %}

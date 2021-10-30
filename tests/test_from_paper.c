@@ -1,6 +1,6 @@
 #include "test.h"
 #include <limits.h>
-int main() {
+void test() {
 	ckd_int_t array[2] = {ckd_mk_int_t(1, false), ckd_mk_int_t(2, false)};
 	CKDTEST(array[0], 1, false);
 	CKDTEST(array[1], 2, false);
