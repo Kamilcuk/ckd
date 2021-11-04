@@ -7,36 +7,36 @@
  * SPDX-License-Identifier: MIT + Beerware
  */
 // Header [[[
-#ifndef _CKDINT_H_
-#define _CKDINT_H_
+#ifndef CKDINT_H_
+#define CKDINT_H_
 
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#ifndef _CKD_static
+#ifndef _ckd_static
 #ifdef CKD_COVERAGE
-#define _CKD_static  static __attribute__((__noinline__)) __attribute__((__used__))
+#define _ckd_static  static __attribute__((__noinline__)) __attribute__((__used__))
 #else
-#define _CKD_static  static inline
+#define _ckd_static  static inline
 #endif
 #endif
-// _CKD_fchpnt - Function returns value and changes pointer.
-// _CKD_fconst - Function only returns value.
+// _ckd_fchpnt - Function returns value and changes pointer.
+// _ckd_fconst - Function only returns value.
 #if __GNUC__
-#define _CKD_fconst     _CKD_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
+#define _ckd_fconst     _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
 #if __GNUC__ >= 10
-#define _CKD_fchpnt(x)  _CKD_static __attribute__((__warn_unused_result__)) __attribute__((__access__(__write_only__, x)))
+#define _ckd_fchpnt(x)  _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__access__(__write_only__, x)))
 #else
-#define _CKD_fchpnt(x)  _CKD_static __attribute__((__warn_unused_result__))
+#define _ckd_fchpnt(x)  _ckd_static __attribute__((__warn_unused_result__))
 #endif
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ > 20230000L
-#define _CKD_fconst     _CKD_static [[__nodiscard__]]
-#define _CKD_fchpnt(x)  _CKD_static [[__nodiscard__]]
+#define _ckd_fconst     _ckd_static [[__nodiscard__]]
+#define _ckd_fchpnt(x)  _ckd_static [[__nodiscard__]]
 #else
-#define _CKD_fconst     _CKD_static
-#define _CKD_fchpnt(x)  _CKD_static
+#define _ckd_fconst     _ckd_static
+#define _ckd_fchpnt(x)  _ckd_static
 #endif
 
 
@@ -46,9 +46,9 @@
 /// @brief A checked integer type for storing value of type {{V.T}}.
 typedef struct {
     /// @brief The stored value.
-    {{V.T}} _Value;
+    {{V.T}} _ckd_Value;
     /// @brief The overflow flag.
-    bool _Overflow;
+    bool _ckd_Overflow;
 } {{V.C}};
 {% endcall %}
 // ]]]
@@ -83,7 +83,7 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @return The ckd_overflow macro returns true if overflow, truncation, or misinterpretation of sign
  * occurred when x was computed and false otherwise.
  */
-#define ckd_overflow(x)  ((x)._Overflow)
+#define ckd_overflow(x)  ((x)._ckd_Overflow)
 
 /**
  * @define type ckd_value(ckd_type x);
@@ -93,7 +93,7 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @param x One of checked integer types.
  * @return The ckd_value macro returns the value of x.
  */
-#define ckd_value(x)     ((x)._Value)
+#define ckd_value(x)     ((x)._ckd_Value)
 
 // ]]]
 // ckd_mk_* functions [[[
@@ -109,8 +109,8 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * @return Return a checked type that represents the value indicated by value and the exact
  * state indicated by overflow.
  */
-_CKD_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
-    const {{V.C}} tmp = {value, overflow}; return tmp;
+_ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
+    const {{V.C}} _ckd_tmp = {_ckd_value, _ckd_overflow}; return _ckd_tmp;
 }
 {% endcall %}
 
@@ -126,8 +126,8 @@ _CKD_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
 // ]]]
 // Generic macros implementation [[[
 
-// These two should provide _CKD_$OP_3 and _CKD_$OP_2
-#if __GNUC__ >= 4 && !_CKD_NOGNU_SOURCE
+// These two should provide _ckd_$OP_3 and _ckd_$OP_2
+#if __GNUC__ >= 4 && !CKD_NOGNU_SOURCE
 #include "ckdint/ckdint_gnu.h"
 #else
 #include "ckdint/ckdint_nognu.h"
@@ -135,17 +135,17 @@ _CKD_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
 
 {% call() L.foreach_OP() %}
 
-/// @define _CKD_$OP_3
+/// @define _ckd_$OP_3
 /// @brief ckd_$OP overflow for 3 arguments.
 /// @see ckd_$OP
 
-/// @define _CKD_$OP_2
+/// @define _ckd_$OP_2
 /// @brief ckd_$OP overflow for 2 arguments.
 /// @see ckd_$OP
 
 /// @brief Macro overload on number of arguments for ckd_$OP
 /// @see ckd_$OP
-#define _CKD_$OP_N(_2, _3, N, ...)  _CKD_$OP_##N
+#define _ckd_$OP_N(_2, _3, N, ...)  _ckd_$OP_##N
 
 /**
  * @define ckd_$OP(...)
@@ -168,13 +168,13 @@ _CKD_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} value, bool overflow) {
  * particular type.  For the first form, this particular type is type1. For the second form, this type is the
  * type that would have been used had the operands undergone usual arithmetic conversion. (Section 6.3.1.8)
  */
-#define ckd_$OP(w, ...)  _CKD_$OP_N(__VA_ARGS__, 3, 2)(w, __VA_ARGS__)
+#define ckd_$OP(w, ...)  _ckd_$OP_N(__VA_ARGS__, 3, 2)(w, __VA_ARGS__)
 
 {% endcall %}
 // ]]]
 // EOF [[[
 
-#endif  // _CKDINT_H_
+#endif  // CKDINT_H_
 
 // ]]]
 // vim: ft=c

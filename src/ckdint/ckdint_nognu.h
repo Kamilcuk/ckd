@@ -11,8 +11,8 @@
  * First everything is converted to unsigned types.
  */
 // Header [[[
-#define _CKDINT_NOGNU
-#ifndef _CKDINT_H_
+#define CKDINT_NOGNU
+#ifndef CKDINT_H_
 #error  This is internal header
 #include "../ckdint.h"
 #endif
@@ -38,12 +38,12 @@
 {% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
 typedef struct {
 	/// Represents the stored value.
-	{{A.T}} _Value;
+	{{A.T}} _ckd_Value;
 	/// Overflow?
-	bool _Overflow;
+	bool _ckd_Overflow;
 	/// Was the original type signed?
-	bool _Signed;
-} _CKD_arg_$TYPE;
+	bool _ckd_Signed;
+} _ckd_arg_$TYPE;
 {% endcall %}
 
 // ]]]
@@ -61,198 +61,199 @@ typedef struct {
 		{% set HALFIDX = V.HALFIDX %}
 // Init macros [[[
 // Signed minimum and maximum!
-#define _S    {{V.ST}}
-#define _U    {{V.UT}}
-#define _SGN  ((_U)1 << (sizeof(_U) * CHAR_BIT - 1))
+#define _ckd_S    {{V.ST}}
+#define _ckd_U    {{V.UT}}
+#define _ckd_sign  ((_ckd_U)1 << (sizeof(_ckd_U) * CHAR_BIT - 1))
 {# // __CDT__PARSER__
-#undef _S
-#define _S  int
-#undef _U
-#define _U  unsigned
+#undef _ckd_S
+#define _ckd_S  int
+#undef _ckd_U
+#define _ckd_U  unsigned
 #}
 // ]]]
 // Addition and substraction operations [[[
 
 {# from https://github.com/gcc-mirror/gcc/blob/16e2427f50c208dfe07d07f18009969502c25dc8/gcc/internal-fn.c#L713 #}
-_CKD_fchpnt(3) bool _CKD_add_sss_{{N}}(_U _S1, _U _S2, _U *_Res) {
-	*_Res = _S1 + _S2;
-	return (_S)_S2 < 0 ? (_S)*_Res > (_S)_S1 : (_S)*_Res < (_S)_S1;
+_ckd_fchpnt(3) bool _ckd_add_sss_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 + _ckd_S2;
+	return (_ckd_S)_ckd_S2 < 0 ? (_ckd_S)*_ckd_res > (_ckd_S)_ckd_S1 : (_ckd_S)*_ckd_res < (_ckd_S)_ckd_S1;
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_sss_{{N}}(_U _S1, _U _S2, _U *_Res) {
-	*_Res = _S1 - _S2;
+_ckd_fchpnt(3) bool _ckd_sub_sss_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 - _ckd_S2;
 	{# https://github.com/gcc-mirror/gcc/blob/16e2427f50c208dfe07d07f18009969502c25dc8/gcc/internal-fn.c#L1058 #}
-	return (_S1 ^ _S2) & ~(*_Res ^ _S2) & _SGN;
-	{# return _S2 < 0 ? *_Res < _S1 : *_Res > _S2; #}
+	return (_ckd_S1 ^ _ckd_S2) & ~(*_ckd_res ^ _ckd_S2) & _ckd_sign;
+	{# return _ckd_S2 < 0 ? *_ckd_res < _ckd_S1 : *_ckd_res > _ckd_S2; #}
 }
 
-_CKD_fchpnt(3) bool _CKD_add_uuu_{{N}}(_U _U1, _U _U2, _U *_Res) {
-	*_Res = _U1 + _U2;
-	return *_Res < _U1;
+_ckd_fchpnt(3) bool _ckd_add_uuu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 + _ckd_U2;
+	return *_ckd_res < _ckd_U1;
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_uuu_{{N}}(_U _U1, _U _U2, _U *_Res) {
-	*_Res = _U1 - _U2;
-	return *_Res > _U1;
+_ckd_fchpnt(3) bool _ckd_sub_uuu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 - _ckd_U2;
+	return *_ckd_res > _ckd_U1;
 }
 
-_CKD_fchpnt(3) bool _CKD_add_sus_{{N}}(_U _S1, _U _U2, _U *_Res) {
-	*_Res = _S1 + _U2;
-	return (*_Res ^ _SGN) < _U2;
+_ckd_fchpnt(3) bool _ckd_add_sus_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 + _ckd_U2;
+	return (*_ckd_res ^ _ckd_sign) < _ckd_U2;
 }
 
-_CKD_fchpnt(3) bool _CKD_add_suu_{{N}}(_U _S1, _U _U2, _U *_Res) {
-	*_Res = _S1 + _U2;
-	_S1 += _SGN;
-	return (*_Res ^ _U2) & ~(_S1 ^ _U2) & _SGN;
+_ckd_fchpnt(3) bool _ckd_add_suu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 + _ckd_U2;
+	_ckd_S1 += _ckd_sign;
+	return (*_ckd_res ^ _ckd_U2) & ~(_ckd_S1 ^ _ckd_U2) & _ckd_sign;
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_sus_{{N}}(_U _S1, _U _U2, _U *_Res) {
-	*_Res = _S1 - _U2;
-	return _U2 > ((_U)_S1 ^ _SGN);
+_ckd_fchpnt(3) bool _ckd_sub_sus_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 - _ckd_U2;
+	return _ckd_U2 > ((_ckd_U)_ckd_S1 ^ _ckd_sign);
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_suu_{{N}}(_U _S1, _U _U2, _U *_Res) {
-	*_Res = _S1 - _U2;
-	return (_S)_S1 < 0 || _U2 > _S1;
+_ckd_fchpnt(3) bool _ckd_sub_suu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 - _ckd_U2;
+	return (_ckd_S)_ckd_S1 < 0 || _ckd_U2 > _ckd_S1;
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_uss_{{N}}(_U _U1, _U _S2, _U *_Res) {
-	*_Res = _U1 - _S2;
-	return _U1 >= (_S2 ^ _SGN);
+_ckd_fchpnt(3) bool _ckd_sub_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 - _ckd_S2;
+	return _ckd_U1 >= (_ckd_S2 ^ _ckd_sign);
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_usu_{{N}}(_U _U1, _U _S2, _U *_Res) {
-	const _U _T1 = _U1 ^ _SGN;
-	const _U _T2 = _T1 - _S2;
-	*_Res = _T2 ^ _SGN;
-	return (_S)_S2 < 0 ? (_S)_T2 < (_S)_T1 : (_S)_T2 > (_S)_T1;
+_ckd_fchpnt(3) bool _ckd_sub_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	const _ckd_U _T1 = _ckd_U1 ^ _ckd_sign;
+	const _ckd_U _T2 = _T1 - _ckd_S2;
+	*_ckd_res = _T2 ^ _ckd_sign;
+	return (_ckd_S)_ckd_S2 < 0 ? (_ckd_S)_T2 < (_ckd_S)_T1 : (_ckd_S)_T2 > (_ckd_S)_T1;
 }
 
-_CKD_fchpnt(3) bool _CKD_add_ssu_{{N}}(_U _S1, _U _S2, _U *_Res) {
-	*_Res = _S1 + _S2;
-	return (_S)_S2 < 0 ? ((_S)(_S1 | *_Res) < 0) : ((_S)(_S1 & *_Res) < 0);
+_ckd_fchpnt(3) bool _ckd_add_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 + _ckd_S2;
+	return (_ckd_S)_ckd_S2 < 0 ? ((_ckd_S)(_ckd_S1 | *_ckd_res) < 0) : ((_ckd_S)(_ckd_S1 & *_ckd_res) < 0);
 }
 
-_CKD_fchpnt(3) bool _CKD_add_uus_{{N}}(_U _U1, _U _U2, _U *_Res) {
-	*_Res = _U1 + _U2;
-	return *_Res < _U2 || (_S)*_Res < 0;
+_ckd_fchpnt(3) bool _ckd_add_uus_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 + _ckd_U2;
+	return *_ckd_res < _ckd_U2 || (_ckd_S)*_ckd_res < 0;
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_uus_{{N}}(_U _U1, _U _U2, _U *_Res) {
-	*_Res = _U1 - _U2;
-	return _U1 >= _U2 ? (_S)*_Res < 0 : (_S)*_Res >= 0;
+_ckd_fchpnt(3) bool _ckd_sub_uus_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 - _ckd_U2;
+	return _ckd_U1 >= _ckd_U2 ? (_ckd_S)*_ckd_res < 0 : (_ckd_S)*_ckd_res >= 0;
 }
 
-_CKD_fchpnt(3) bool _CKD_sub_ssu_{{N}}(_U _S1, _U _S2, _U *_Res) {
-	*_Res = _S1 - _S2;
-	return (_S)_S2 >= 0 ? ((_S)(_S1 | *_Res) < 0) : ((_S)(_S1 & *_Res) < 0);
+_ckd_fchpnt(3) bool _ckd_sub_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 - _ckd_S2;
+	return (_ckd_S)_ckd_S2 >= 0 ? ((_ckd_S)(_ckd_S1 | *_ckd_res) < 0) : ((_ckd_S)(_ckd_S1 & *_ckd_res) < 0);
 }
 
-_CKD_fchpnt(3) bool _CKD_add_uss_{{N}}(_U _U1, _U _S1, _U *_Res) {
-	return _CKD_add_sus_{{N}}(_S1, _U1, _Res);
+_ckd_fchpnt(3) bool _ckd_add_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S1, _ckd_U *_ckd_res) {
+	return _ckd_add_sus_{{N}}(_ckd_S1, _ckd_U1, _ckd_res);
 }
 
-_CKD_fchpnt(3) bool _CKD_add_usu_{{N}}(_U _U1, _U _S1, _U *_Res) {
-	return _CKD_add_suu_{{N}}(_S1, _U1, _Res);
+_ckd_fchpnt(3) bool _ckd_add_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S1, _ckd_U *_ckd_res) {
+	return _ckd_add_suu_{{N}}(_ckd_S1, _ckd_U1, _ckd_res);
 }
 
 // ]]]
 // Multiplication [[[
 
 {# https://wiki.sei.cmu.edu/confluence/display/c/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow #}
-_CKD_fconst bool _CKD_ovf_signed_{{N}}(_S _A, _S _B) {
-	return _A > 0 ? _B > 0 ? (_A > {{MAX}} / _B) : (_B < {{MIN}} / _A) : _B > 0 ? (_A < {{MIN}} / _B) : (_A != 0 && _B < {{MAX}} / _A);
+_ckd_fconst bool _ckd_ovf_signed_{{N}}(_ckd_S _ckd_a, _ckd_S _ckd_b) {
+	return _ckd_a > 0 ? _ckd_b > 0 ? (_ckd_a > {{MAX}} / _ckd_b) : (_ckd_b < {{MIN}} / _ckd_a) : _ckd_b > 0 ? (_ckd_a < {{MIN}} / _ckd_b) : (_ckd_a != 0 && _ckd_b < {{MAX}} / _ckd_a);
 }
 
 {# https://stackoverflow.com/a/1815391/9072753 #}
-_CKD_fconst bool _CKD_ovf_unsigned_{{N}}(_U _A, _U _B) {
-	return _A != 0 && _B > {{UMAX}} / _A;
+_ckd_fconst bool _ckd_ovf_unsigned_{{N}}(_ckd_U _ckd_a, _ckd_U _ckd_b) {
+	return _ckd_a != 0 && _ckd_b > {{UMAX}} / _ckd_a;
 }
 
 {# https://github.com/gcc-mirror/gcc/blob/16e2427f50c208dfe07d07f18009969502c25dc8/gcc/internal-fn.c#L1286 #}
 
-_CKD_fchpnt(3) bool _CKD_mul_sss_{{N}}(_U _S1, _U _S2, _U *_Res) {
-	*_Res = _S1 * _S2;
-	return _CKD_ovf_signed_{{N}}(_S1, _S2);
+_ckd_fchpnt(3) bool _ckd_mul_sss_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 * _ckd_S2;
+	return _ckd_ovf_signed_{{N}}(_ckd_S1, _ckd_S2);
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_uuu_{{N}}(_U _U1, _U _U2, _U *_Res) {
-	*_Res = _U1 * _U2;
-	return _CKD_ovf_unsigned_{{N}}(_U1, _U2);
+_ckd_fchpnt(3) bool _ckd_mul_uuu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 * _ckd_U2;
+	return _ckd_ovf_unsigned_{{N}}(_ckd_U1, _ckd_U2);
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_suu_{{N}}(_U _S1, _U _U2, _U *_Res) {
-	*_Res = _S1 * _U2;
-	return ((_S) _S1 < 0 && _U2) || _CKD_ovf_unsigned_{{N}}(_S1, _U2);
+_ckd_fchpnt(3) bool _ckd_mul_suu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 * _ckd_U2;
+	return ((_ckd_S) _ckd_S1 < 0 && _ckd_U2) || _ckd_ovf_unsigned_{{N}}(_ckd_S1, _ckd_U2);
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_uus_{{N}}(_U _U1, _U _U2, _U *_Res) {
-	*_Res = _U1 * _U2;
-	return (_S)*_Res < 0 || _CKD_ovf_unsigned_{{N}}(_U1, _U2);
+_ckd_fchpnt(3) bool _ckd_mul_uus_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_U1 * _ckd_U2;
+	return (_ckd_S)*_ckd_res < 0 || _ckd_ovf_unsigned_{{N}}(_ckd_U1, _ckd_U2);
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_sus_{{N}}(_U _S1, _U _U2, _U *_Res) {
-	*_Res = _S1 * _U2;
-	return (_S)_U2 >= 0 ? _CKD_ovf_signed_{{N}}(_S1, _U2) : (_S1 && ((_S)_S1 != -1 || _U2 != *_Res));
+_ckd_fchpnt(3) bool _ckd_mul_sus_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
+	*_ckd_res = _ckd_S1 * _ckd_U2;
+	return (_ckd_S)_ckd_U2 >= 0 ? _ckd_ovf_signed_{{N}}(_ckd_S1, _ckd_U2) : (_ckd_S1 && ((_ckd_S)_ckd_S1 != -1 || _ckd_U2 != *_ckd_res));
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_ssu_{{N}}(_U _S1, _U _S2, _U *_Res) {
-	const _U _T1 = (_S)(_S1 & _S2) < 0 ? (-_S1) : _S1;
-	const _U _T2 = (_S)(_S1 & _S2) < 0 ? (-_S2) : _S2;
-	*_Res = _T1 * _T2;
-	return (_S)(_S1 ^ _S2) < 0 ? (_S1 && _S2) : _CKD_ovf_signed_{{N}}(_T1, _T2);
+_ckd_fchpnt(3) bool _ckd_mul_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	const _ckd_U _T1 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S1) : _ckd_S1;
+	const _ckd_U _T2 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S2) : _ckd_S2;
+	*_ckd_res = _T1 * _T2;
+	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_signed_{{N}}(_T1, _T2);
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_uss_{{N}}(_U _U1, _U _S2, _U *_Res) {
-	return _CKD_mul_sus_{{N}}(_S2, _U1, _Res);
+_ckd_fchpnt(3) bool _ckd_mul_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	return _ckd_mul_sus_{{N}}(_ckd_S2, _ckd_U1, _ckd_res);
 }
 
-_CKD_fchpnt(3) bool _CKD_mul_usu_{{N}}(_U _U1, _U _S2, _U *_Res) {
-	return _CKD_mul_suu_{{N}}(_S2, _U1, _Res);
+_ckd_fchpnt(3) bool _ckd_mul_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
+	return _ckd_mul_suu_{{N}}(_ckd_S2, _ckd_U1, _ckd_res);
 }
 
 /* ------------------------------------------------------------------------- */
 
 {% call() L.foreach_OP() %}
-_CKD_fchpnt(6) bool _CKD_$OP_{{N}}_choose(bool asigned, bool bsigned, bool ressigned, _U _A, _U _B, _U *_Res) {
-	if (asigned) {
-		if (bsigned) {
-			if (ressigned) {
-				return _CKD_$OP_sss_{{N}}(_A, _B, _Res);
+_ckd_fchpnt(6) bool _ckd_$OP_{{N}}_choose(bool _ckd_asigned, bool _ckd_bsigned, bool _ckd_ressigned,
+		_ckd_U _ckd_a, _ckd_U _ckd_b, _ckd_U *_ckd_res) {
+	if (_ckd_asigned) {
+		if (_ckd_bsigned) {
+			if (_ckd_ressigned) {
+				return _ckd_$OP_sss_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 			}
-			return _CKD_$OP_ssu_{{N}}(_A, _B, _Res);
+			return _ckd_$OP_ssu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 		} else {
-			if (ressigned) {
-				return _CKD_$OP_sus_{{N}}(_A, _B, _Res);
+			if (_ckd_ressigned) {
+				return _ckd_$OP_sus_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 			}
 		}
-		return _CKD_$OP_suu_{{N}}(_A, _B, _Res);
+		return _ckd_$OP_suu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 	} else {
-		if (bsigned) {
-			if (ressigned) {
-				return _CKD_$OP_uss_{{N}}(_A, _B, _Res);
+		if (_ckd_bsigned) {
+			if (_ckd_ressigned) {
+				return _ckd_$OP_uss_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 			}
-			return _CKD_$OP_usu_{{N}}(_A, _B, _Res);
+			return _ckd_$OP_usu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 		} else {
-			if (ressigned) {
-				return _CKD_$OP_uus_{{N}}(_A, _B, _Res);
+			if (_ckd_ressigned) {
+				return _ckd_$OP_uus_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 			}
 		}
 	}
-	return _CKD_$OP_uuu_{{N}}(_A, _B, _Res);
+	return _ckd_$OP_uuu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 }
 
-_CKD_fconst {{V.SC}} _CKD_$OP_2_{{S}}(_CKD_arg_{{U}} _A, _CKD_arg_{{U}} _B) {
-	{{V.SC}} _Tmp;
-	ckd_overflow(_Tmp) = _CKD_$OP_{{N}}_choose(_A._Signed, _B._Signed, 1, _A._Value, _B._Value, (_U*)&ckd_value(_Tmp)) || _A._Overflow || _B._Overflow;
-	return _Tmp;
+_ckd_fconst {{V.SC}} _ckd_$OP_2_{{S}}(_ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd_b) {
+	{{V.SC}} _ckd_tmp;
+	ckd_overflow(_ckd_tmp) = _ckd_$OP_{{N}}_choose(_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, 1, _ckd_a._ckd_Value, _ckd_b._ckd_Value, (_ckd_U*)&ckd_value(_ckd_tmp)) || _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
+	return _ckd_tmp;
 }
 
-_CKD_fconst {{V.UC}} _CKD_$OP_2_{{U}}(_CKD_arg_{{U}} _A, _CKD_arg_{{U}} _B) {
-	{{V.UC}} _Tmp;
-	ckd_overflow(_Tmp) = _CKD_$OP_{{N}}_choose(_A._Signed, _B._Signed, 0, _A._Value, _B._Value, &ckd_value(_Tmp)) || _A._Overflow || _B._Overflow;
-	return _Tmp;
+_ckd_fconst {{V.UC}} _ckd_$OP_2_{{U}}(_ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd_b) {
+	{{V.UC}} _ckd_tmp;
+	ckd_overflow(_ckd_tmp) = _ckd_$OP_{{N}}_choose(_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, 0, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &ckd_value(_ckd_tmp)) || _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
+	return _ckd_tmp;
 }
 
 	{% call(B) L.foreach_TYPE(char=1) %}
@@ -268,22 +269,22 @@ _CKD_fconst {{V.UC}} _CKD_$OP_2_{{U}}(_CKD_arg_{{U}} _A, _CKD_arg_{{U}} _B) {
 */
 #}
 		{% set noint128 = "int128" not in S and "int128" not in B.T %}
-_CKD_fchpnt(1) bool _CKD_$OP_3_{{U}}_to_$TYPE({{B.T}} *_Ret, _CKD_arg_{{U}} _A, _CKD_arg_{{U}} _B) {
-	{{V.UT}} _Tmp;
-	const bool _Opovf = _CKD_$OP_{{N}}_choose(_A._Signed, _B._Signed, {{B.SIGNED}}, _A._Value, _B._Value, &_Tmp)
+_ckd_fchpnt(1) bool _ckd_$OP_3_{{U}}_to_$TYPE({{B.T}} *_ckd_ret, _ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd_b) {
+	{{V.UT}} _ckd_tmp;
+	const bool _ckd_of = _ckd_$OP_{{N}}_choose(_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, {{B.SIGNED}}, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &_ckd_tmp)
 	{% if B.SIGNED or (not B.SIGNED and B.HALFIDX <= HALFIDX) %}
 			{% set protect = not B.SIGNED and noint128 %}
 			{% if protect %}
 #if {{UMAX}} > {{B.MAX}}
 			{% endif %}
-			|| (_U) _Tmp > (_U) {{B.MAX}}
+			|| (_ckd_U) _ckd_tmp > (_ckd_U) {{B.MAX}}
 			{% if protect %}
 #endif
 			{% endif %}
 	{% endif %}
-			|| _A._Overflow || _B._Overflow;
-	*_Ret = ({{B.T}}) _Tmp;
-	return _Opovf;
+			|| _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
+	*_ckd_ret = ({{B.T}}) _ckd_tmp;
+	return _ckd_of;
 }
 		{% endif %}
 	{% endcall %}
@@ -292,9 +293,9 @@ _CKD_fchpnt(1) bool _CKD_$OP_3_{{U}}_to_$TYPE({{B.T}} *_Ret, _CKD_arg_{{U}} _A, 
 
 // ]]]
 // Undef macros [[[
-#undef _S
-#undef _U
-#undef _SGN
+#undef _ckd_S
+#undef _ckd_U
+#undef _ckd_sign
 // ]]]
 	{% endif %}
 {% endcall %}
@@ -303,8 +304,8 @@ _CKD_fchpnt(1) bool _CKD_$OP_3_{{U}}_to_$TYPE({{B.T}} *_Ret, _CKD_arg_{{U}} _A, 
 	{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
 		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
 			{% if B.CHAR or OPERATIONEXISTS(A, B) | int %}
-_CKD_fchpnt(1) bool _CKD_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_Ret, _CKD_arg_$TYPE a, _CKD_arg_$TYPE b) {
-	return (ckd_overflow(*_Ret) = _CKD_$OP_3_$TYPE_to_$TYPE2(&ckd_value(*_Ret), a, b));
+_ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYPE _ckd_a, _ckd_arg_$TYPE _ckd_b) {
+	return (ckd_overflow(*_ckd_ret) = _ckd_$OP_3_$TYPE_to_$TYPE2(&ckd_value(*_ckd_ret), _ckd_a, _ckd_b));
 }
 			{% endif %}
 		{% endcall%}
@@ -316,23 +317,23 @@ _CKD_fchpnt(1) bool _CKD_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_Ret, _CKD_arg_$TYPE a,
 {% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
 	{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
 		{% if OPERATIONEXISTS(A, B) | int %}
-_CKD_fconst _CKD_arg_$TYPE _CKD_$TYPE2_to_arg_$TYPE({{B.T}} _CKD_v) {
-	const _CKD_arg_$TYPE _CKD_ret = { _CKD_v, 0, {{B.SIGNED}} }; return _CKD_ret;
+_ckd_fconst _ckd_arg_$TYPE _ckd_$TYPE2_to_arg_$TYPE({{B.T}} _ckd_v) {
+	const _ckd_arg_$TYPE _ckd_ret = { _ckd_v, 0, {{B.SIGNED}} }; return _ckd_ret;
 }
-_CKD_fconst _CKD_arg_$TYPE _CKD_c$TYPE2_to_arg_$TYPE({{B.C}} _CKD_v) {
-	const _CKD_arg_$TYPE _CKD_ret = { ckd_value(_CKD_v), ckd_overflow(_CKD_v), {{B.SIGNED}} }; return _CKD_ret;
+_ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
+	const _ckd_arg_$TYPE _ckd_ret = { ckd_value(_ckd_v), ckd_overflow(_ckd_v), {{B.SIGNED}} }; return _ckd_ret;
 }
 		{% endif %}
 	{% endcall %}
 {% endcall %}
 
 /**
- * @define _CKD_topuntype(X)
+ * @define _ckd_topuntype(X)
  * @brief TO Promoted UNsigned TYPE
  * @param X Checked integer type or normal integer type.
  * @return Associated unsigned promoted integer type of the associated normal integer with value 0.
  */
-#define _CKD_topuntype(X) \
+#define _ckd_topuntype(X) \
         _Generic((X) \
 {% call(V) L.foreach_TYPE(char=1) %}
 	{% if not V.PROMOTED %}
@@ -346,11 +347,11 @@ _CKD_fconst _CKD_arg_$TYPE _CKD_c$TYPE2_to_arg_$TYPE({{B.C}} _CKD_v) {
 		)
 
 /**
- * @define _CKD_totype(X)
+ * @define _ckd_totype(X)
  * @param X Checked integer type or normal integer type.
  * @return Associated normal integer type with value 0.
  */
-#define _CKD_totype(X) \
+#define _ckd_totype(X) \
         _Generic((X) \
 {% call(V) L.foreach_TYPE(char=1) %}
         ,{{V.C}}: ({{V.T}})0 \
@@ -359,24 +360,24 @@ _CKD_fconst _CKD_arg_$TYPE _CKD_c$TYPE2_to_arg_$TYPE({{B.C}} _CKD_v) {
 		)
 
 /**
- * @define _CKD_arg(TO, FROM)
- * @brief Converts any integer or checked integer type into an _CKD_arg of integer type TO.
+ * @define _ckd_arg(TO, FROM)
+ * @brief Converts any integer or checked integer type into an _ckd_arg of integer type TO.
  * @param TO Any integer type or checked integer type.
  * @param FROM Any integer type or checked integer type.
- * @return _CKD_arg structure that will be passed to other functions.
+ * @return _ckd_arg structure that will be passed to other functions.
  *
  * This is what makes nested invokations like `ckd_add(ckd_add(....), ..)` the slowest.
  * It's because FROM is expanded 4 times here.
  */
-#define _CKD_arg(TO, FROM) \
+#define _ckd_arg(TO, FROM) \
 			_Generic((TO) \
 	{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
 			,{{A.T}}: \
 				_Generic((FROM) \
 		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
 			{% if OPERATIONEXISTS(A, B) | int %}
-				,{{B.T}}: _CKD_$TYPE2_to_arg_$TYPE \
-				,{{B.C}}: _CKD_c$TYPE2_to_arg_$TYPE \
+				,{{B.T}}: _ckd_$TYPE2_to_arg_$TYPE \
+				,{{B.C}}: _ckd_c$TYPE2_to_arg_$TYPE \
 			{% else %}
 				,{{B.T}}: /*unreachable*/-1 \
 				,{{B.C}}: /*unreachable*/-1 \
@@ -390,15 +391,15 @@ _CKD_fconst _CKD_arg_$TYPE _CKD_c$TYPE2_to_arg_$TYPE({{B.C}} _CKD_v) {
 // Macros [[[
 {% call() L.foreach_OP() %}
 
-#define _CKD_$OP_3(r, a, b) \
+#define _ckd_$OP_3(r, a, b) \
 			_Generic( \
-				_CKD_topuntype(a) + _CKD_topuntype(b) + _CKD_topuntype(*(r)) \
+				_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)) \
 	{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
 			,{{A.T}}: _Generic(*(r) \
 		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
 			{% if OPERATIONEXISTS(A, B) | int %}
-				,{{B.T}}:  _CKD_$OP_3_$TYPE_to_$TYPE2 \
-				,{{B.C}}: _CKD_$OP_3_$TYPE_to_c$TYPE2 \
+				,{{B.T}}:  _ckd_$OP_3_$TYPE_to_$TYPE2 \
+				,{{B.C}}: _ckd_$OP_3_$TYPE_to_c$TYPE2 \
 			{% else %}
 				,{{B.T}}: /*unreachable*/-1 \
 				,{{B.C}}: /*unreachable*/-1 \
@@ -406,20 +407,20 @@ _CKD_fconst _CKD_arg_$TYPE _CKD_c$TYPE2_to_arg_$TYPE({{B.C}} _CKD_v) {
 		{% endcall %}
 				) \
 	{% endcall %}
-			)(r, _CKD_arg( \
-					_CKD_topuntype(a) + _CKD_topuntype(b) + _CKD_topuntype(*(r)) \
-				, a), _CKD_arg( \
-					_CKD_topuntype(a) + _CKD_topuntype(b) + _CKD_topuntype(*(r)) \
+			)(r, _ckd_arg( \
+					_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)) \
+				, a), _ckd_arg( \
+					_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)) \
 				, b))
 
-#define _CKD_$OP_2(a, b) \
-			_Generic(_CKD_totype(a) + _CKD_totype(b) \
+#define _ckd_$OP_2(a, b) \
+			_Generic(_ckd_totype(a) + _ckd_totype(b) \
 	{% call(A) L.foreach_TYPE(promotedonly=1) %}
-			,{{A.T}}: _CKD_$OP_2_$TYPE \
+			,{{A.T}}: _ckd_$OP_2_$TYPE \
 	{% endcall %}
 			)( \
-			_CKD_arg(_CKD_topuntype(a) + _CKD_topuntype(b), a), \
-			_CKD_arg(_CKD_topuntype(a) + _CKD_topuntype(b), b))
+			_ckd_arg(_ckd_topuntype(a) + _ckd_topuntype(b), a), \
+			_ckd_arg(_ckd_topuntype(a) + _ckd_topuntype(b), b))
 
 {% endcall %}
 

@@ -144,7 +144,7 @@ if(BUILD_TESTING)
       HAVE_UINT128=${HAVE_UINT128}
     )
     target_link_libraries(${_nn} PUBLIC ${PROJECT_NAME})
-    target_compile_definitions(${_nn} PUBLIC _CKD_NOGNU_SOURCE)
+    target_compile_definitions(${_nn} PUBLIC CKD_NOGNU_SOURCE=1)
     add_test(NAME ${_nn} COMMAND ${_nn})
     set_tests_properties(${_nn} PROPERTIES
       LABEL ${PROJECT_NAME}
