@@ -7,6 +7,7 @@ if(CKD_DEV)
   include(CTest)
   set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
   set(BUILD_TESTING 1)
+  set(CKD_BUILD_TESTING 1)
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
     ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
@@ -123,7 +124,7 @@ install(FILES
 
 ###############################################################################
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND CKD_BUILD_TESTING)
   file(GLOB tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/tests tests/*.c)
   foreach(tt IN LISTS tests)
     string(REGEX REPLACE "\\.c" "" _nn ${tt})
