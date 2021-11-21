@@ -15,7 +15,7 @@ if(CKD_DEV)
   )
   if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     set(_sanitize)
-    if(NOT CKD_COVERAGE)
+    if(NOT CKD_COVERAGE AND NOT CKD_NOSANITIZE)
       set(_sanitize
         -fsanitize=undefined,address,pointer-compare,pointer-subtract
       )

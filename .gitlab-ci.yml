@@ -42,7 +42,7 @@ alpine:
   image: registry.gitlab.com/kamcuk/builder:alpine
   script:
     - apk add py3-jinja2
-    - make test CONFARGS=-UCKD_DEV
+    - make test CONFARGS=-DCKD_NOSANITIZE=1
 
 coverage:
   image: registry.gitlab.com/kamcuk/builder
