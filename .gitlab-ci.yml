@@ -6,20 +6,18 @@ variables:
 icc:
   tags:
     - perun
-  image:
-    name: intel/oneapi-hpckit
-    entrypoint: []
+  image: registry.gitlab.com/kamcuk/builder:intel
   variables:
     CC: icc
   script:
     - . /root/.oneapi_env_vars
     - apt-get update
-    - apt-get install -y python3-pip
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pip
     - pip3 install jinja2
     - make test
 
 gcc:
-  image: registry.gitlab.com/kamcuk/builder
+  image: registry.gitlab.com/kamcuk/builder:archlinux
   variables:
     CC: gcc
   script:
@@ -31,7 +29,7 @@ gcc:
       - include
 
 clang:
-  image: registry.gitlab.com/kamcuk/builder
+  image: registry.gitlab.com/kamcuk/builder:archlinux
   variables:
     CC: clang
   script:
@@ -45,7 +43,13 @@ alpine:
     - make test CONFARGS=-DCKD_NOSANITIZE=1
 
 coverage:
-  image: registry.gitlab.com/kamcuk/builder
+  image: registry.gitlab.com/kamcuk/builder:archlinux
   script:
     - pacman -Sy --noconfirm python-jinja gcovr
     - make coverage
+
+sampleproject:
+  image: registry.gitlab.com/kamcuk/builder:alpine
+  script:
+    - apk add py3-jinja2
+    - cd ./sampleusage && make

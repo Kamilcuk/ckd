@@ -1,14 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
-project(ckdtester LANGUAGES C)
-
-###############################################################################
+project(ckdtest LANGUAGES C)
+add_executable(ckdtest main.c)
 include(FetchContent)
-FetchContent_Declare(
-  ckdint
-  URL https://gitlab.com/Kamcuk/ckd/-/jobs/artifacts/master/download?job=gcc
-)
-FetchContent_MakeAvailable(ckdint)
-include_directories(${ckdint_SOURCE_DIR})
-###############################################################################
+include(./example-${MODE}.cmake)
+include(CTest)
+add_test(NAME ckdtest COMMAND ckdtest)
 
-add_executable(ckdtester main.c)

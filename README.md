@@ -16,7 +16,7 @@ Build with cmake.
 
 # Using from CMake
 
-Hopefully `add_subdirectory()` this directory or see ./sampleusage/CMakeLists.txt.
+See ./sampleusage/example-*. Do `add_subdirectory()` this directory.
 
 # Written
 
