@@ -4,8 +4,6 @@ variables:
   CMAKE_BUILD_TYPE: Release
 
 icc:
-  tags:
-    - perun
   image: registry.gitlab.com/kamcuk/builder:intel
   variables:
     CC: icc
