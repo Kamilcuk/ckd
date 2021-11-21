@@ -99,7 +99,6 @@ add_custom_target(ckdint_gen
 )
 add_library(${PROJECT_NAME} INTERFACE)
 add_dependencies(${PROJECT_NAME} ckdint_gen)
-target_sources(${PROJECT_NAME} INTERFACE ${generated})
 target_include_directories(${PROJECT_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
 )
@@ -117,10 +116,12 @@ target_compile_features(${PROJECT_NAME} INTERFACE
 
 ###############################################################################
 
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
-  DESTINATION include
-)
+if(CKD_INSTALL)
+  install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint.h
+    DESTINATION include
+  )
+endif()
 
 ###############################################################################
 
