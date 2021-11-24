@@ -162,7 +162,13 @@ _ckd_fchpnt(3) bool _ckd_add_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S1, _ckd_U *_
 
 {# https://wiki.sei.cmu.edu/confluence/display/c/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow #}
 _ckd_fconst bool _ckd_ovf_signed_{{N}}(_ckd_S _ckd_a, _ckd_S _ckd_b) {
-	return _ckd_a > 0 ? _ckd_b > 0 ? (_ckd_a > {{MAX}} / _ckd_b) : (_ckd_b < {{MIN}} / _ckd_a) : _ckd_b > 0 ? (_ckd_a < {{MIN}} / _ckd_b) : (_ckd_a != 0 && _ckd_b < {{MAX}} / _ckd_a);
+	return _ckd_a > 0 ?
+			_ckd_b > 0 ?
+				(_ckd_a > {{MAX}} / _ckd_b) :
+				(_ckd_b < {{MIN}} / _ckd_a) :
+			_ckd_b > 0 ?
+				(_ckd_a < {{MIN}} / _ckd_b) :
+				(_ckd_a != 0 && _ckd_b < {{MAX}} / _ckd_a);
 }
 
 {# https://stackoverflow.com/a/1815391/9072753 #}
@@ -215,49 +221,53 @@ _ckd_fchpnt(3) bool _ckd_mul_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_
 /* ------------------------------------------------------------------------- */
 
 {% call() L.foreach_OP() %}
-_ckd_fchpnt(6) bool _ckd_$OP_{{N}}_choose(bool _ckd_asigned, bool _ckd_bsigned, bool _ckd_ressigned,
+
+_ckd_fchpnt(5) bool _ckd_$OP_{{N}}_choose_s(bool _ckd_asigned, bool _ckd_bsigned,
 		_ckd_U _ckd_a, _ckd_U _ckd_b, _ckd_U *_ckd_res) {
 	if (_ckd_asigned) {
 		if (_ckd_bsigned) {
-			if (_ckd_ressigned) {
-				return _ckd_$OP_sss_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-			}
+			return _ckd_$OP_sss_{{N}}(_ckd_a, _ckd_b, _ckd_res);
+		}
+		return _ckd_$OP_sus_{{N}}(_ckd_a, _ckd_b, _ckd_res);
+	} else if (_ckd_bsigned) {
+		return _ckd_$OP_uss_{{N}}(_ckd_a, _ckd_b, _ckd_res);
+	}
+	return _ckd_$OP_uus_{{N}}(_ckd_a, _ckd_b, _ckd_res);
+}
+
+_ckd_fchpnt(5) bool _ckd_$OP_{{N}}_choose_u(bool _ckd_asigned, bool _ckd_bsigned,
+		_ckd_U _ckd_a, _ckd_U _ckd_b, _ckd_U *_ckd_res) {
+	if (_ckd_asigned) {
+		if (_ckd_bsigned) {
 			return _ckd_$OP_ssu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-		} else {
-			if (_ckd_ressigned) {
-				return _ckd_$OP_sus_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-			}
 		}
 		return _ckd_$OP_suu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-	} else {
-		if (_ckd_bsigned) {
-			if (_ckd_ressigned) {
-				return _ckd_$OP_uss_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-			}
-			return _ckd_$OP_usu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-		} else {
-			if (_ckd_ressigned) {
-				return _ckd_$OP_uus_{{N}}(_ckd_a, _ckd_b, _ckd_res);
-			}
-		}
+	} else if (_ckd_bsigned) {
+		return _ckd_$OP_usu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 	}
 	return _ckd_$OP_uuu_{{N}}(_ckd_a, _ckd_b, _ckd_res);
 }
 
 _ckd_fconst {{V.SC}} _ckd_$OP_2_{{S}}(_ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd_b) {
 	{{V.SC}} _ckd_tmp;
-	ckd_overflow(_ckd_tmp) = _ckd_$OP_{{N}}_choose(_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, 1, _ckd_a._ckd_Value, _ckd_b._ckd_Value, (_ckd_U*)&ckd_value(_ckd_tmp)) || _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
+	{{V.UT}} _ckd_utmp;
+	ckd_overflow(_ckd_tmp) = _ckd_$OP_{{N}}_choose_s(
+			_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &_ckd_utmp)
+			|| _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
+	ckd_value(_ckd_tmp) = _ckd_utmp;
 	return _ckd_tmp;
 }
 
 _ckd_fconst {{V.UC}} _ckd_$OP_2_{{U}}(_ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd_b) {
 	{{V.UC}} _ckd_tmp;
-	ckd_overflow(_ckd_tmp) = _ckd_$OP_{{N}}_choose(_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, 0, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &ckd_value(_ckd_tmp)) || _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
+	ckd_overflow(_ckd_tmp) = _ckd_$OP_{{N}}_choose_u(
+			_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &ckd_value(_ckd_tmp))
+			|| _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
 	return _ckd_tmp;
 }
 
 	{% call(B) L.foreach_TYPE(char=1) %}
-		{# if OPERATIONEXISTS(V, B) #}
+		{# ###if OPERATIONEXISTS(V, B)### #}
 		{% if V.HALFIDX >= B.HALFIDX %}
 {#
 /*
@@ -271,7 +281,19 @@ _ckd_fconst {{V.UC}} _ckd_$OP_2_{{U}}(_ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd
 		{% set noint128 = "int128" not in S and "int128" not in B.T %}
 _ckd_fchpnt(1) bool _ckd_$OP_3_{{U}}_to_$TYPE({{B.T}} *_ckd_ret, _ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd_b) {
 	{{V.UT}} _ckd_tmp;
-	const bool _ckd_of = _ckd_$OP_{{N}}_choose(_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, {{B.SIGNED}}, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &_ckd_tmp)
+	const bool _ckd_of =
+	{% if B.SIGNED == 1 %}
+		_ckd_$OP_{{N}}_choose_s(
+	{% elif B.SIGNED == 0 %}
+		_ckd_$OP_{{N}}_choose_u(
+	{% else %}
+#if {{B.SIGNED}}
+		_ckd_$OP_{{N}}_choose_s(
+#else
+		_ckd_$OP_{{N}}_choose_u(
+#endif
+	{% endif %}
+			_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &_ckd_tmp)
 	{% if B.SIGNED or (not B.SIGNED and B.HALFIDX <= HALFIDX) %}
 			{% set protect = not B.SIGNED and noint128 %}
 			{% if protect %}
