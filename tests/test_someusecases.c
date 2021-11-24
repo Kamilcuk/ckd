@@ -1,3 +1,4 @@
+#define CKDINT_EXT_SOURCE 1
 #include "test.h"
 
 size_t my_calloc(size_t a, size_t b) {
@@ -32,11 +33,6 @@ int append3(size_t bufsize) {
 	}
 	return ckd_value(cbufsize);
 }
-
-#define _ckd_inc_1(x)     ckd_add(x, *(x), 1)
-#define _ckd_inc_2(x, y)  ckd_add(x, *(x), y)
-#define _ckd_inc_(_1,_2,N,...) _ckd_inc##N
-#define ckd_inc(...)  _ckd_inc_(__VA_ARGS__,_2,_1)(__VA_ARGS__)
 
 int append3_2(size_t bufsize) {
 	// Incrementing variable never simpler!

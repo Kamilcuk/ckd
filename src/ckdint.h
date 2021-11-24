@@ -172,6 +172,39 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 
 {% endcall %}
 // ]]]
+// Extensions [[[
+#if defined(CKDINT_EXT_SOURCE) || defined(__GNU_SOURCE__)
+
+/**
+ * @define ckd_inc(...)
+ * @brief ckd_inc(pnt) or ckd_inc(pnt, inc).
+ * Increments value pointed to by pnt by 1 or by inc.
+ * @param pnt Pointer to checked integer type or normal integer type.
+ * Warning: it is evaulated twice!
+ * @param inc The value to increment with. 1 by default.
+ * @return overflow
+ */
+#define _ckd_inc_1(pnt, _)     ckd_add((pnt), *(pnt), 1)
+#define _ckd_inc_2(pnt, inc)   ckd_add((pnt), *(pnt), (inc))
+#define _ckd_inc_(pnt, inc, N, ...)  _ckd_inc_##N(pnt, inc)
+#define ckd_inc(...)   _ckd_inc_(__VA_ARGS__, 2, 1)
+
+/**
+ * @define ckd_dec(...)
+ * @brief ckd_dec(pnt) or ckd_dec(pnt, inc).
+ * Decrements value pointed to by pnt by 1 or by inc.
+ * @param pnt Pointer to checked integer type or normal integer type.
+ * Warning: it is evaulated twice!
+ * @param inc The value to increment with. 1 by default.
+ * @return overflow
+ */
+#define _ckd_dec_1(pnt, _)     ckd_sub((pnt), *(pnt), 1)
+#define _ckd_dec_2(pnt, inc)   ckd_sub((pnt), *(pnt), (inc))
+#define _ckd_dec_(pnt, inc, N, ...)  _ckd_dec_##N(pnt, inc)
+#define ckd_dec(...)   _ckd_dec_(__VA_ARGS__, 2, 1)
+
+#endif
+// ]]]
 // EOF [[[
 
 #endif  // CKDINT_H_
