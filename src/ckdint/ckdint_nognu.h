@@ -336,18 +336,63 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYP
 // ]]]]
 // Helper macros [[[
 
-{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
-	{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
-		{% if OPERATIONEXISTS(A, B) | int %}
-_ckd_fconst _ckd_arg_$TYPE _ckd_$TYPE2_to_arg_$TYPE({{B.T}} _ckd_v) {
-	const _ckd_arg_$TYPE _ckd_ret = { _ckd_v, 0, {{B.SIGNED}} }; return _ckd_ret;
-}
-_ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
-	const _ckd_arg_$TYPE _ckd_ret = { ckd_value(_ckd_v), ckd_overflow(_ckd_v), {{B.SIGNED}} }; return _ckd_ret;
-}
-		{% endif %}
+{# There are 11 basic types. 22 types with checked integer types. 26 with int128. So type indexes range from 0 to 25. #}
+{% set MUL = 100 %}
+/**
+ * @define _ckd_toidx(X)
+ * @param X Any checked integer type or normal integer type.
+ * @return Unique number of that type.
+ * @brief Imagine all checked integer types and normal integer types are numbered.
+ * This returns the number. char has 0.
+ */
+#define _ckd_toidx(X) \
+			_Generic((X) \
+	{% call(V) L.foreach_TYPE(char=1) %}
+			,{{V.T}}: {{ V.T_IDX }} \
+			,{{V.C}}: {{ V.C_IDX }} \
 	{% endcall %}
-{% endcall %}
+			)
+
+/**
+ * @define _ckd_topidx(X)
+ * @brief TO Promoted IDX.
+ * @param X Any checked and unchecked integer type.
+ * @return Number of type after integer promotions.
+ * @see _ckd_toidx
+ */
+#define _ckd_topidx(X) \
+			_Generic((X) \
+	{% call(V) L.foreach_TYPE(char=1) %}
+			,{{V.T}}: {# #}
+				{%- if V.IDX == -1 -%}
+					{#- char -#}
+					12-2*({{ V.SIGNED }})
+				{%- elif V.IDX < 6 and V.SIGNED -%}
+					{#- int -#}
+					10
+				{%- elif V.IDX < 6 and not V.SIGNED -%}
+					{#- unsigned int -#}
+					12
+				{%- else -%}
+					{{ V.T_IDX }}
+				{%- endif %} \
+			,{{V.C}}: {{ V.C_IDX }} \
+	{% endcall %}
+			)
+
+/**
+ * @define _ckd_putoidx(X)
+ * @brief Promoted Unsigned TO IDX. Same as _ckd_toidx, but only promoted unsigned types.
+ * @param X Any promoted unsigned integer type.
+ * @return Index of that type.
+ * @see _ckd_toidx
+ */
+#define _ckd_putoidx(X) \
+			_Generic((X) \
+	{% call(V) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
+			,{{V.T}}: {{ V.T_IDX }} \
+	{% endcall %}
+			)
 
 /**
  * @define _ckd_topuntype(X)
@@ -356,17 +401,13 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
  * @return Associated unsigned promoted integer type of the associated normal integer with value 0.
  */
 #define _ckd_topuntype(X) \
-        _Generic((X) \
-{% call(V) L.foreach_TYPE(char=1) %}
-	{% if not V.PROMOTED %}
-        ,{{V.C}}: (unsigned)0 \
-        ,{{V.T}}: (unsigned)0 \
-	{% else %}
-        ,{{V.C}}: ({{V.UT}})0 \
-        ,{{V.T}}: ({{V.UT}})0 \
-	{% endif %}
-{% endcall %}
-		)
+			_Generic((X) \
+	{% call(V) L.foreach_TYPE(promotedonly=1) %}
+			,{{V.C}}: ({{V.UT}})0 \
+			,{{V.T}}: ({{V.UT}})0 \
+	{% endcall %}
+			,default: 0u \
+			)
 
 /**
  * @define _ckd_totype(X)
@@ -374,12 +415,31 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
  * @return Associated normal integer type with value 0.
  */
 #define _ckd_totype(X) \
-        _Generic((X) \
-{% call(V) L.foreach_TYPE(char=1) %}
-        ,{{V.C}}: ({{V.T}})0 \
-        ,{{V.T}}: ({{V.T}})0 \
+			_Generic((X) \
+	{% call(V) L.foreach_TYPE(char=1) %}
+			,{{V.C}}: ({{V.T}})0 \
+			,{{V.T}}: ({{V.T}})0 \
+	{% endcall %}
+			)
+
+// ]]]]
+// _ckd_arg creation [[[
+
+{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
+	{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
+		{% if OPERATIONEXISTS(A, B) | int %}
+			{# Automatically integer promote lower types #}
+			{% if A.HALFIDX == B.HALFIDX %}
+_ckd_fconst _ckd_arg_$TYPE _ckd_$TYPE2_to_arg_$TYPE({{B.T}} _ckd_v) {
+	const _ckd_arg_$TYPE _ckd_ret = { _ckd_v, 0, {{B.SIGNED}} }; return _ckd_ret;
+}
+			{% endif %}
+_ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
+	const _ckd_arg_$TYPE _ckd_ret = { ckd_value(_ckd_v), ckd_overflow(_ckd_v), {{B.SIGNED}} }; return _ckd_ret;
+}
+		{% endif %}
+	{% endcall %}
 {% endcall %}
-		)
 
 /**
  * @define _ckd_arg(TO, FROM)
@@ -387,25 +447,26 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
  * @param TO Any integer type or checked integer type.
  * @param FROM Any integer type or checked integer type.
  * @return _ckd_arg structure that will be passed to other functions.
- *
- * This is what makes nested invokations like `ckd_add(ckd_add(....), ..)` the slowest.
- * It's because FROM is expanded 4 times here.
  */
 #define _ckd_arg(TO, FROM) \
-			_Generic((TO) \
-	{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
-			,{{A.T}}: \
-				_Generic((FROM) \
-		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
-			{% if OPERATIONEXISTS(A, B) | int %}
-				,{{B.T}}: _ckd_$TYPE2_to_arg_$TYPE \
-				,{{B.C}}: _ckd_c$TYPE2_to_arg_$TYPE \
-			{% else %}
-				,{{B.T}}: /*unreachable*/-1 \
-				,{{B.C}}: /*unreachable*/-1 \
+			_Generic((int(*)[{{MUL}} * _ckd_putoidx(TO) + _ckd_topidx(FROM)])0 \
+	{% call(T) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
+		{% call(F) L.foreach_TYPE(char=1, repl="$TYPE2") %}
+			{% if OPERATIONEXISTS(T, F) | int %}
+				{% if T.HALFIDX == F.HALFIDX %}
+			,int(*)[{{MUL * T.T_IDX + F.T_IDX}}]: _ckd_$TYPE2_to_arg_$TYPE \
+				{% elif F.T_IDX >= 10 %}
+					{# Lower types still need to be handled, cause I can not filter them above #}
+					{% if F.SIGNED %}
+			,int(*)[{{MUL * T.T_IDX + F.T_IDX}}]: _ckd_{{T.SN}}_to_arg_$TYPE \
+					{% else %}
+			,int(*)[{{MUL * T.T_IDX + F.T_IDX}}]: _ckd_$TYPE_to_arg_$TYPE \
+					{% endif %}
+				{% endif %}
+				{##}
+			,int(*)[{{MUL * T.T_IDX + F.C_IDX}}]: _ckd_c$TYPE2_to_arg_$TYPE \
 			{% endif %}
 		{% endcall %}
-				) \
 	{% endcall %}
 			)(FROM)
 
@@ -413,27 +474,22 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 // Macros [[[
 {% call() L.foreach_OP() %}
 
-#define _ckd_$OP_3(r, a, b) \
-			_Generic( \
-				_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)) \
+#define _ckd_$OP_3_IN(TOTYPE, r, a, b) \
+			_Generic((int(*)[{{MUL}} * _ckd_putoidx(TOTYPE) + _ckd_toidx(*(r))])0 \
 	{% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
-			,{{A.T}}: _Generic(*(r) \
 		{% call(B) L.foreach_TYPE(char=1, repl="$TYPE2") %}
 			{% if OPERATIONEXISTS(A, B) | int %}
-				,{{B.T}}:  _ckd_$OP_3_$TYPE_to_$TYPE2 \
-				,{{B.C}}: _ckd_$OP_3_$TYPE_to_c$TYPE2 \
-			{% else %}
-				,{{B.T}}: /*unreachable*/-1 \
-				,{{B.C}}: /*unreachable*/-1 \
+			,int(*)[{{MUL * A.T_IDX + B.T_IDX}}]: _ckd_$OP_3_$TYPE_to_$TYPE2 \
+			,int(*)[{{MUL * A.T_IDX + B.C_IDX}}]: _ckd_$OP_3_$TYPE_to_c$TYPE2 \
 			{% endif %}
 		{% endcall %}
-				) \
 	{% endcall %}
-			)(r, _ckd_arg( \
-					_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)) \
-				, a), _ckd_arg( \
-					_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)) \
-				, b))
+			)(r, \
+			_ckd_arg(TOTYPE, a), \
+			_ckd_arg(TOTYPE, b))
+
+#define _ckd_$OP_3(r, a, b) \
+		_ckd_$OP_3_IN(_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)), r, a, b)
 
 #define _ckd_$OP_2(a, b) \
 			_Generic(_ckd_totype(a) + _ckd_totype(b) \
