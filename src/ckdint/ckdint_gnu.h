@@ -60,7 +60,7 @@ _ckd_fconst {{A.C}} _ckd_cttoc$TYPE({{A.C}} _ckd_v) { return _ckd_v; }
 // Generic macros implementation for GNU compatible [[[
 {% call() L.foreach_OP() %}
 
-#define _ckd_$OP_2(a, b)  __extension__({ \
+#define _ckd_$OP_2(a, b, _)  __extension__({ \
 		__auto_type _ckd_a = (a); \
 		__auto_type _ckd_b = (b); \
 		__auto_type _ckd_ca = _ckd_toct(_ckd_a); \

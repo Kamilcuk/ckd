@@ -491,7 +491,7 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 #define _ckd_$OP_3(r, a, b) \
 		_ckd_$OP_3_IN(_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)), r, a, b)
 
-#define _ckd_$OP_2(a, b) \
+#define _ckd_$OP_2(a, b, _) \
 			_Generic(_ckd_totype(a) + _ckd_totype(b) \
 	{% call(A) L.foreach_TYPE(promotedonly=1) %}
 			,{{A.T}}: _ckd_$OP_2_$TYPE \

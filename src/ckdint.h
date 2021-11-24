@@ -145,7 +145,7 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 
 /// @brief Macro overload on number of arguments for ckd_$OP
 /// @see ckd_$OP
-#define _ckd_$OP_N(_2, _3, N, ...)  _ckd_$OP_##N
+#define _ckd_$OP_N(_1, _2, _3, N, ...)  _ckd_$OP_##N(_1, _2, _3)
 
 /**
  * @define ckd_$OP(...)
@@ -168,7 +168,7 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
  * particular type.  For the first form, this particular type is type1. For the second form, this type is the
  * type that would have been used had the operands undergone usual arithmetic conversion. (Section 6.3.1.8)
  */
-#define ckd_$OP(w, ...)  _ckd_$OP_N(__VA_ARGS__, 3, 2)(w, __VA_ARGS__)
+#define ckd_$OP(...)  _ckd_$OP_N(__VA_ARGS__, 3, 2)
 
 {% endcall %}
 // ]]]
