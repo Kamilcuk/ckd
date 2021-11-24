@@ -22,9 +22,9 @@
  * or the type of the value of checked integer type.
  */
 #define _ckd_ctypeof(X) \
-        _Generic((X) \
+		_Generic((X) \
 	{% call(A) L.foreach_TYPE(char=1) %}
-        ,{{A.T}}: ({{A.C}}){0} \
+		,{{A.T}}: ({{A.C}}){0} \
 		,{{A.C}}: ({{A.C}}){0} \
 	{% endcall %}
 		)
@@ -42,7 +42,7 @@ _ckd_fconst {{A.C}} _ckd_toct_c$TYPE({{A.C}} _ckd_v, bool _ckd_ignore) { (void)_
  * or the value of checked integer type.
  */
 #define _ckd_toct(X) \
-        _Generic((X) \
+		_Generic((X) \
 	{% call(A) L.foreach_TYPE(char=1) %}
 		,{{A.T}}: ckd_mk_$TYPE_t \
 		,{{A.C}}: _ckd_toct_c$TYPE \

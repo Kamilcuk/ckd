@@ -45,10 +45,10 @@
 {% call(V) L.foreach_TYPE(char=1) %}
 /// @brief A checked integer type for storing value of type {{V.T}}.
 typedef struct {
-    /// @brief The stored value.
-    {{V.T}} _ckd_Value;
-    /// @brief The overflow flag.
-    bool _ckd_Overflow;
+	/// @brief The stored value.
+	{{V.T}} _ckd_Value;
+	/// @brief The overflow flag.
+	bool _ckd_Overflow;
 } {{V.C}};
 {% endcall %}
 // ]]]
@@ -59,17 +59,16 @@ typedef struct {
  * @define ckd_$TYPE_t
  * @brief Check integer type ckd_$TYPE_t is an alias to one of ckd_*_t basic types.
  */
-{% endcall %}
-
-{% call(A) L.foreach_TYPE(array=L.ALIASEDTYPES) %}
-    {% call(B) L.foreach_TYPE(array=L.BASICTYPES) %}
+	{# Optionall "el"if from the second case #}
+	{% set ns = namespace(EL="") %}
+	{% call(B) L.foreach_TYPE(array=L.BASICTYPES) %}
 		{% if ((A.SIGNED and B.SIGNED) or (not A.SIGNED and not B.SIGNED)) %}
-#if !defined({{A.C}}) && defined({{A.MAX}}) && {{A.MAX}} == {{B.MAX}}{% if A.SIGNED %} && {{A.MIN}} == {{B.MIN}}{% endif %}
-
+#{{ns.EL}}if defined({{A.MAX}}) && {{A.MAX}} == {{B.MAX}}
 #define {{A.C}}  {{B.C}}
-#endif
+			{% set ns.EL = "el" %}
 		{% endif %}
-    {% endcall %}
+	{% endcall %}
+#endif
 {% endcall %}
 
 // ]]]
@@ -110,14 +109,14 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * state indicated by overflow.
  */
 _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
-    const {{V.C}} _ckd_tmp = {_ckd_value, _ckd_overflow}; return _ckd_tmp;
+	const {{V.C}} _ckd_tmp = {_ckd_value, _ckd_overflow}; return _ckd_tmp;
 }
 {% endcall %}
 
 #define ckd_mk(value, overflow) \
 		_Generic((value) \
 	{% call(A) L.foreach_TYPE() %}
-        ,{{A.T}}: ckd_mk_$TYPE_t \
+		,{{A.T}}: ckd_mk_$TYPE_t \
 	{% endcall %}
 		)(value, overflow)
 

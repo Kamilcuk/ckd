@@ -21,7 +21,7 @@ config:
 	cmake -S. -B$(B) -DCKD_DEV=1 $(CONFARGS) $(ARGS)
 build: config
 	$(TIME) cmake --build $(B) -j
-build_gen: config
+gen: config
 	cmake --build $(B) --target ckdint_gen
 test: build
 	( cd $(B) && ctest $(if $(value R),-R "$R") $(if $F,--rerun-failed -j1) --output-on-failure )
@@ -31,9 +31,9 @@ clean:
 distclean:
 	rm -rf _build
 
-lint: build_gen
+lint: gen
 	cd _build/include && cpplint \
-		--filter=-whitespace/tab,-runtime/int,-readability/casting,-readability/todo,-build/header_guard \
+		--filter=-whitespace/tab,-runtime/int,-readability/casting,-readability/todo,-build/header_guard,-whitespace/comma,-whitespace/parens,-whitespace/braces \
 		--linelength=150 \
 		*.h */*.h
 
@@ -46,11 +46,11 @@ measure:
 
 ###############################################################################
 
-see: build_gen
+see: gen
 	cat $(B)/include/ckdint.h
 	grep -C5 AA $(B)/include/*.h $(B)/include/*/*.h || true
 
-shorttest: build_gen
+shorttest: gen
 	gcc -xc -o $(B)/shorttest.out $(B)/include/ckdint.h
 	$(B)/shorttest.out
 
