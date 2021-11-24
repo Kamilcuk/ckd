@@ -41,6 +41,9 @@ coverage:
 	$(MAKE) BSUF=coverage ARGS=-DCKD_COVERAGE=1
 	gcovr -r $(PWD) -e test -f _build/coverage/include -j $$(nproc)
 
+measure:
+	./scripts/measure.sh output
+
 ###############################################################################
 
 see: build_gen

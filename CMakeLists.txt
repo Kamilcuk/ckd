@@ -8,6 +8,10 @@ if(CKD_DEV)
   set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
   set(BUILD_TESTING 1)
   set(CKD_BUILD_TESTING 1)
+  find_program(BASH bash)
+  if(BASH AND NOT CMAKE_C_COMPILER_LAUNCHER)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CMAKE_CURRENT_SOURCE_DIR}/scripts/measure.sh)
+  endif()
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink
     ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
