@@ -9,9 +9,6 @@ icc:
     CC: icc
   script:
     - . /root/.oneapi_env_vars
-    - apt-get update
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pip
-    - pip3 install jinja2
     - make test
 
 gcc:

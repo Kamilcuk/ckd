@@ -75,7 +75,7 @@ find_program(Python_EXECUTABLE NAMES python3 python REQUIRED)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint)
-set(generated)
+set(_generated)
 foreach(ii IN ITEMS ckdint.h ckdint/ckdint_nognu.h ckdint/ckdint_gnu.h)
   add_custom_command(
     OUTPUT
@@ -92,30 +92,19 @@ foreach(ii IN ITEMS ckdint.h ckdint/ckdint_nognu.h ckdint/ckdint_gnu.h)
       ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
     COMMENT "Generate ${ii}"
   )
-  list(APPEND generated
+  list(APPEND _generated
     ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
   )
 endforeach()
 
 add_custom_target(ckdint_gen
-  DEPENDS ${generated}
+  DEPENDS ${_generated}
   COMMENT "Generated ${PROJECT_NAME} header file"
 )
 add_library(${PROJECT_NAME} INTERFACE)
 add_dependencies(${PROJECT_NAME} ckdint_gen)
 target_include_directories(${PROJECT_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-)
-set_target_properties(${PROJECT_NAME} PROPERTIES
-  LINKER_LANGUAGE C
-  C_EXTENSIONS NO
-  C_STANDARD 11
-  C_STANDARD_REQUIRED NO
-)
-target_compile_features(${PROJECT_NAME} INTERFACE
-  c_std_11
-  c_function_prototypes
-  c_variadic_macros
 )
 
 ###############################################################################
