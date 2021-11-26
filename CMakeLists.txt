@@ -62,6 +62,29 @@ endif()
 
 ###############################################################################
 
+find_package(Git QUIET REQUIRED)
+
+execute_process(
+  COMMAND "${GIT_EXECUTABLE}" describe --always --tags HEAD
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE CKD_VERSION_DESCRIBE
+  ERROR_QUIET
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+set_property(GLOBAL APPEND
+  PROPERTY CMAKE_CONFIGURE_DEPENDS
+  "${CMAKE_SOURCE_DIR}/.git/index"
+)
+
+string(REGEX REPLACE "^v([0-9]+)\\.([0-9]+)\\.([0-9]+).*$" "\\1;\\2;\\3" _tmp "${CKD_VERSION_DESCRIBE}")
+set(_tmp ${_tmp})
+list(GET _tmp 0 _major)
+list(GET _tmp 1 _minor)
+list(GET _tmp 2 _patch)
+math(EXPR CKD_VERSION "${_major}*256*256+${_minor}*256+${_patch}" OUTPUT_FORMAT HEXADECIMAL)
+
+###############################################################################
+
 check_type_size("__int128" UINT128 BUILTIN_TYPES_ONLY LANGUAGE C)
 if(HAVE_UINT128)
   set(HAVE_UINT128 1)
@@ -76,24 +99,27 @@ find_program(Python_EXECUTABLE NAMES python3 python REQUIRED)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/ckdint)
 set(_generated)
-foreach(ii IN ITEMS ckdint.h ckdint/ckdint_nognu.h ckdint/ckdint_gnu.h)
+foreach(_file IN ITEMS ckdint.h ckdint/ckdint_nognu.h ckdint/ckdint_gnu.h)
   add_custom_command(
     OUTPUT
-      ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
+      ${CMAKE_CURRENT_BINARY_DIR}/include/${_file}
     DEPENDS
       ${CMAKE_CURRENT_SOURCE_DIR}/src/script.py
       ${CMAKE_CURRENT_SOURCE_DIR}/src/library.jinja
-      ${CMAKE_CURRENT_SOURCE_DIR}/src/${ii}
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/${_file}
     COMMAND
       ${Python_EXECUTABLE}
       ${CMAKE_CURRENT_SOURCE_DIR}/src/script.py
-      ${ii}
-      "${HAVE_UINT128}"
-      ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
-    COMMENT "Generate ${ii}"
+      ${_file}
+      ${CMAKE_CURRENT_BINARY_DIR}/include/${_file}
+      "HAVE_UINT128=${HAVE_UINT128}"
+      "CKD_VERSION_DESCRIBE=${CKD_VERSION_DESCRIBE}"
+      "CKD_VERSION=${CKD_VERSION}"
+    COMMENT "Generate ${_file}"
+    VERBATIM
   )
   list(APPEND _generated
-    ${CMAKE_CURRENT_BINARY_DIR}/include/${ii}
+    ${CMAKE_CURRENT_BINARY_DIR}/include/${_file}
   )
 endforeach()
 

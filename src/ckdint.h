@@ -39,6 +39,8 @@
 #define _ckd_fchpnt(x)  _ckd_static
 #endif
 
+#define CKD_VERSION_DESCRIBE  {{ CKD_VERSION_DESCRIBE }}
+#define CKD_VERSION           {{ CKD_VERSION }}
 
 // ]]]
 // Declare checked integer types [[[
