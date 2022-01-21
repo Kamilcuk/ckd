@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+// SPDX-License-Identifier: MIT
 #include "test.h"
 void test() {
     CKDTEST(ckd_mul(ckd_add(1, 1), 2), 4, 0);

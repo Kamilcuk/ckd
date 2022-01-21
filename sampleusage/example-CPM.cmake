@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+# SPDX-License-Identifier: MIT
 
 execute_process(
   COMMAND git rev-parse HEAD

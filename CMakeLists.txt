@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+# SPDX-License-Identifier: MIT
 cmake_minimum_required(VERSION 3.11)
 project(ckd LANGUAGES C)
 

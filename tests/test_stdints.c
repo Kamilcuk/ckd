@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+// SPDX-License-Identifier: MIT
 #include "test.h"
 void test() {
 	ckd_int32_t a = ckd_add((int32_t)1, (int32_t)2);

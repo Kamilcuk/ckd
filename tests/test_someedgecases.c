@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+// SPDX-License-Identifier: MIT
 #include "test.h"
 void test() {
 	TEST_OP3(long long, mul, LLONG_MAX, (long long)2, (long long)((unsigned long long)LLONG_MAX * 2), 1);

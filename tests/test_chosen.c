@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+// SPDX-License-Identifier: MIT
 #include "test.h"
 void test() {
 	TEST_OP3(char, add, (unsigned)INT_MAX, 0u, (char)INT_MAX, 1);

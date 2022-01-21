@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+// SPDX-License-Identifier: MIT
 #include "test.h"
 void test() {
 #if defined(__SIZEOF_INT128__) && !defined(__INTEL_COMPILER) && !defined(__clang__)

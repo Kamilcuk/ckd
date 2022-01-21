@@ -3,8 +3,9 @@
  * @file ckdint_gnu.h
  * @author Kamil Cukrowski <kamilcukrowski@gmail.com>
  * @date 2021-06-19
- * @copyright 2021 Kamil Cukrowski
- * SPDX-License-Identifier: MIT + Beerware
+ * @copyright 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+ * SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+ * SPDX-License-Identifier: MIT
  */
 #define CKDINT_GNU
 #ifndef CKDINT_H_

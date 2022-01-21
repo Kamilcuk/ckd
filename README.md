@@ -20,7 +20,13 @@ See ./sampleusage/example-*. Do `add_subdirectory()` this directory.
 
 # Written
 
-Written by Kamil Cukrowski 2021
-Licensed jointly under Beerware and MIT License.
-
 Very big thanks for [tstanisl](https://stackoverflow.com/users/4989451/tstanisl) for [this answer](https://stackoverflow.com/a/70096454/9072753).
+
+# License
+
+Copyright (c) 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+
+Licensed under MIT License.
+
+For more details, see [`LICENSE.md`](LICENSE.md).
+

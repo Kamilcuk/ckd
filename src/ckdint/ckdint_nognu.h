@@ -3,8 +3,9 @@
  * @file ckdint_nognu.h
  * @author Kamil Cukrowski <kamilcukrowski@gmail.com>
  * @date 2021-06-19
- * @copyright 2021 Kamil Cukrowski
- * SPDX-License-Identifier: MIT + Beerware
+ * @copyright 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+ * SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
+ * SPDX-License-Identifier: MIT
  *
  * While this file tries not to use any GNU extensions, it
  * strongly assumes that all types are twos-complement.
