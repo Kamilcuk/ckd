@@ -129,7 +129,7 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 // Generic macros implementation [[[
 
 // These two should provide _ckd_$OP_3 and _ckd_$OP_2
-#if __GNUC__ >= 4 && !CKD_NOGNU_SOURCE
+#if __GNUC__ >= 5 && !CKD_NOGNU_SOURCE
 #include "ckdint/ckdint_gnu.h"
 #else
 #include "ckdint/ckdint_nognu.h"
