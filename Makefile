@@ -1,5 +1,6 @@
 # Makefile
 MAKEFLAGS = -rR --no-print-directories --warn-undefined-variables
+unexport MAKEFLAGS
 .NOTPARALLEL:
 
 CONFARGS = $(shell hash ninja 2>/dev/null && echo -GNinja)
@@ -28,8 +29,6 @@ R_TARGET = $(if $(value R),--target $(shell \
 		   tr '\n' ' ' \
 		   ))
 JOBS ?=
-export VERBOSE ?=
-export COLOR ?=
 
 all: test
 
