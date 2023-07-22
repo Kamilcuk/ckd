@@ -147,7 +147,14 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 
 /// @brief Macro overload on number of arguments for ckd_$OP
 /// @see ckd_$OP
-#define _ckd_$OP_N(_1, _2, _3, N, ...)  _ckd_$OP_##N(_1, _2, _3)
+#ifdef CKDINT_GNU
+#define _ckd_$OP_N(_1, _2, _3, N, ...)  _ckd_gnu_$OP_##N(_1, _2, _3)
+#elif defined(CKDINT_NOGNU)
+#define _ckd_$OP_N(_1, _2, _3, N, ...)  _ckd_nognu_$OP_##N(_1, _2, _3)
+#else
+#error "ckdint internal error - neight gnu or nognu version was included"
+#endif
+
 
 /**
  * @define ckd_$OP(...)

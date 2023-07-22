@@ -7,6 +7,7 @@
  * SPDX-FileCopyrightText: 2022 Kamil Cukrowski <kamilcukrowski@gmail.com>
  * SPDX-License-Identifier: MIT
  */
+#ifndef CKDINT_GNU
 #define CKDINT_GNU
 #ifndef CKDINT_H_
 #error  This is internal header
@@ -61,7 +62,7 @@ _ckd_fconst {{A.C}} _ckd_cttoc$TYPE({{A.C}} _ckd_v) { return _ckd_v; }
 // Generic macros implementation for GNU compatible [[[
 {% call() L.foreach_OP() %}
 
-#define _ckd_$OP_2(a, b, _)  __extension__({ \
+#define _ckd_gnu_$OP_2(a, b, _)  __extension__({ \
 		__auto_type _ckd_a = (a); \
 		__auto_type _ckd_b = (b); \
 		__auto_type _ckd_ca = _ckd_toct(_ckd_a); \
@@ -72,7 +73,7 @@ _ckd_fconst {{A.C}} _ckd_cttoc$TYPE({{A.C}} _ckd_v) { return _ckd_v; }
 		_ckd_tmp; \
 		})
 
-#define _ckd_$OP_3(r, a, b)  __extension__({ \
+#define _ckd_gnu_$OP_3(r, a, b)  __extension__({ \
 		__auto_type _ckd_a = (a); \
 		__auto_type _ckd_b = (b); \
 		__auto_type _ckd_r = (r); \
@@ -92,5 +93,6 @@ _ckd_fconst {{A.C}} _ckd_cttoc$TYPE({{A.C}} _ckd_v) { return _ckd_v; }
 
 {% endcall %}
 // ]]]
+#endif
 // vim: ft=c
 

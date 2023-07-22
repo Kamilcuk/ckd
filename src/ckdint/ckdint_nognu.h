@@ -12,6 +12,7 @@
  * First everything is converted to unsigned types.
  */
 // Header [[[
+#ifndef CKDINT_NOGNU
 #define CKDINT_NOGNU
 #ifndef CKDINT_H_
 #error  This is internal header
@@ -484,10 +485,10 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 			_ckd_arg(TOTYPE, a), \
 			_ckd_arg(TOTYPE, b))
 
-#define _ckd_$OP_3(r, a, b) \
+#define _ckd_nognu_$OP_3(r, a, b) \
 		_ckd_$OP_3_IN(_ckd_topuntype(a) + _ckd_topuntype(b) + _ckd_topuntype(*(r)), r, a, b)
 
-#define _ckd_$OP_2(a, b, _) \
+#define _ckd_nognu_$OP_2(a, b, _) \
 			_Generic(_ckd_totype(a) + _ckd_totype(b) \
 	{% call(A) L.foreach_TYPE(promotedonly=1) %}
 			,{{A.T}}: _ckd_$OP_2_$TYPE \
@@ -499,5 +500,6 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 {% endcall %}
 
 // ]]]
+#endif
 // vim: ft=c
 
