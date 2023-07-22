@@ -27,7 +27,7 @@
 // _ckd_fconst - Function only returns value.
 #if __GNUC__
 #define _ckd_fconst     _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
-#if __GNUC__ >= 10
+#if __GNUC__ >= 10 && !__INTEL_COMPILER
 #define _ckd_fchpnt(x)  _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__access__(__write_only__, x)))
 #else
 #define _ckd_fchpnt(x)  _ckd_static __attribute__((__warn_unused_result__))
