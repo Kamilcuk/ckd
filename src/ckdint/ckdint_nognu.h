@@ -203,7 +203,7 @@ _ckd_fchpnt(3) bool _ckd_mul_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_
 	const _ckd_U _t1 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S1) : _ckd_S1;
 	const _ckd_U _t2 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S2) : _ckd_S2;
 	*_ckd_res = _t1 * _t2;
-	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_signed_{{N}}(_t1, _t2, *_ckd_res);
+	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_unsigned_{{N}}(_t1, _t2);
 }
 
 _ckd_fchpnt(3) bool _ckd_mul_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
@@ -500,3 +500,4 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 
 // ]]]
 // vim: ft=c
+
