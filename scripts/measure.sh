@@ -18,13 +18,25 @@ if (($# == 1)) && [[ "$1" == "output" ]]; then
         echo "   Top MEM:"
         sort -k5nr "$cachedir"/*.txt | head -n 5 | column -t
         f() {
-            printf "%s\t" "$1"
-            g++ -E tests/"$1".c -D CKD_NOGNU_SOURCE=1 -I _build/include/ |
-                wc | tee >(numfmt --to=iec --field -) | tr -d '\n'
-            echo
+			local count
+            count=$(
+				g++ -E ./tests/"$1".c -DCKD_NOGNU_SOURCE=1 -I./_build/default/include/ |
+                wc
+			)
+			countfmt=$(numfmt --to=iec --field - <<<"$count")
+            printf "%s\t%s\t%s\n" "$1" "$count" "$countfmt"
         }
-        f test_more3
-        f test_mixing3
+		echo
+		{
+			f test_more3
+			f test_mixing3
+		} | {
+			if hash column 2>/dev/null; then
+				column -t -N file,lines,words,chars,lines,words,chars
+			else
+				cat
+			fi
+		}
     } | tee "$cachedir"/tmp
     mv "$cachedir"/tmp "$cachedir"/prev
     exit
