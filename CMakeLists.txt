@@ -102,7 +102,6 @@ add_custom_target(
   COMMENT "Generated ${PROJECT_NAME} header file")
 add_library(${PROJECT_NAME} INTERFACE)
 add_dependencies(${PROJECT_NAME} ckdint_gen)
-target_sources(${PROJECT_NAME} PUBLIC ${_generated})
 target_include_directories(
   ${PROJECT_NAME}
   INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
