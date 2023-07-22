@@ -15,16 +15,16 @@ void test() {
 				bool nognuo, gnuo;
 				nognuo = _ckd_nognu_add_3(&nognur, (int)a, (int)b);
 				gnuo = _ckd_gnu_add_3(&gnur, (int)a, (int)b);
-				assert(nognur == gnur);
-				assert(nognuo == gnuo);
+				TEST_EQ(nognur, gnur);
+				TEST_EQ(nognuo, gnuo);
 				nognuo = _ckd_nognu_sub_3(&nognur, (int)a, (int)b);
 				gnuo = _ckd_gnu_sub_3(&gnur, (int)a, (int)b);
-				assert(nognur == gnur);
-				assert(nognuo == gnuo);
+				TEST_EQ(nognur, gnur);
+				TEST_EQ(nognuo, gnuo);
 				nognuo = _ckd_nognu_mul_3(&nognur, (int)a, (int)b);
 				gnuo = _ckd_gnu_mul_3(&gnur, (int)a, (int)b);
-				assert(nognur == gnur);
-				assert(nognuo == gnuo);
+				TEST_EQ(nognur, gnur);
+				TEST_EQ(nognuo, gnuo);
 			}
 		}
 	}
