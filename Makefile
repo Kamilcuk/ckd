@@ -1,7 +1,8 @@
+# Makefile
 MAKEFLAGS = -rR --no-print-directories --warn-undefined-variables
 .NOTPARALLEL:
 
-CONF_ARGS = $(shell hash ninja 2>/dev/null && echo -GNinja)
+CONFARGS = $(shell hash ninja 2>/dev/null && echo -GNinja)
 TIME = $(shell hash time 2>/dev/null && echo time)
 RUN = $(shell \
           hash systemd-notify 2>/dev/null && \
@@ -14,19 +15,30 @@ RUN = $(shell \
 BSUF ?= $(if $(value CC),$(CC),default)
 B ?= ./_build/$(BSUF)
 ARGS ?=
+# Set to 1 to rerun failed only.
+F ?=
+# Regex filter to run only these tests
+R ?=
+R_TARGET = $(if $(value R),--target $(shell \
+		   cd tests && \
+		   printf "%s\n" * | \
+		   xargs basename -s .c | \
+		   grep "$R" | \
+		   sed 's/.*/ckd_&\nckd_&_nognu/' | \
+		   tr '\n' ' ' \
+		   ))
+JOBS ?=
 
 all: test
 
 config:
-	cmake -S. -B$(B) -DCKD_DEV=1 $(CONF_ARGS) $(ARGS)
+	cmake -S. -B$(B) -DCKD_DEV=1 $(CONFARGS) $(ARGS)
 build: config
-	$(RUN) $(TIME) cmake --build $(B) -j $(if $(value VERBOSE),1 --verbose)
+	$(RUN) $(TIME) cmake --build $(B) -j $(JOBS) $(if $(value VERBOSE),--verbose) $(R_TARGET)
 gen: config
 	cmake --build $(B) --target ckdint_gen
-F ?=
-R ?=
 test: build
-	( cd $(B) && ctest $(if $(value R),-R "$R") $(if $F,--rerun-failed -j1) --output-on-failure )
+	cd $(B) && ctest $(if $(value R),-R "$R") $(if $F,--rerun-failed -j1) --output-on-failure $(ARGS)
 	wc $(B)/include/*.h $(B)/include/*/*.h
 clean:
 	rm -rf $(B)
