@@ -28,6 +28,8 @@ R_TARGET = $(if $(value R),--target $(shell \
 		   tr '\n' ' ' \
 		   ))
 JOBS ?=
+export VERBOSE ?=
+export COLOR ?=
 
 all: test
 
