@@ -161,15 +161,9 @@ _ckd_fchpnt(3) bool _ckd_add_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S1, _ckd_U *_
 // ]]]
 // Multiplication [[[
 
-{# https://wiki.sei.cmu.edu/confluence/display/c/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow #}
-_ckd_fconst bool _ckd_ovf_signed_{{N}}(_ckd_S _ckd_a, _ckd_S _ckd_b) {
-	return _ckd_a > 0 ?
-			_ckd_b > 0 ?
-				(_ckd_a > {{MAX}} / _ckd_b) :
-				(_ckd_b < {{MIN}} / _ckd_a) :
-			_ckd_b > 0 ?
-				(_ckd_a < {{MIN}} / _ckd_b) :
-				(_ckd_a != 0 && _ckd_b < {{MAX}} / _ckd_a);
+{# https://www.informit.com/articles/article.aspx?p=1959565&seqNum=13 #}
+_ckd_fconst bool _ckd_ovf_signed_{{N}}(_ckd_S s1, _ckd_S s2, _ckd_S r) {
+	return (s2 < 0 && s1 == {{MIN}}) || (s2 && r / s2 != s1);
 }
 
 {# https://stackoverflow.com/a/1815391/9072753 #}
@@ -181,7 +175,7 @@ _ckd_fconst bool _ckd_ovf_unsigned_{{N}}(_ckd_U _ckd_a, _ckd_U _ckd_b) {
 
 _ckd_fchpnt(3) bool _ckd_mul_sss_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
 	*_ckd_res = _ckd_S1 * _ckd_S2;
-	return _ckd_ovf_signed_{{N}}(_ckd_S1, _ckd_S2);
+	return _ckd_ovf_signed_{{N}}(_ckd_S1, _ckd_S2, *_ckd_res);
 }
 
 _ckd_fchpnt(3) bool _ckd_mul_uuu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
@@ -201,14 +195,15 @@ _ckd_fchpnt(3) bool _ckd_mul_uus_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_
 
 _ckd_fchpnt(3) bool _ckd_mul_sus_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
 	*_ckd_res = _ckd_S1 * _ckd_U2;
-	return (_ckd_S)_ckd_U2 >= 0 ? _ckd_ovf_signed_{{N}}(_ckd_S1, _ckd_U2) : (_ckd_S1 && ((_ckd_S)_ckd_S1 != -1 || _ckd_U2 != *_ckd_res));
+	return (_ckd_S)_ckd_U2 >= 0 ? _ckd_ovf_signed_{{N}}(_ckd_S1, _ckd_U2, *_ckd_res)
+		: (_ckd_S1 && ((_ckd_S)_ckd_S1 != -1 || _ckd_U2 != *_ckd_res));
 }
 
 _ckd_fchpnt(3) bool _ckd_mul_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
 	const _ckd_U _t1 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S1) : _ckd_S1;
 	const _ckd_U _t2 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S2) : _ckd_S2;
 	*_ckd_res = _t1 * _t2;
-	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_signed_{{N}}(_t1, _t2);
+	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_signed_{{N}}(_t1, _t2, *_ckd_res);
 }
 
 _ckd_fchpnt(3) bool _ckd_mul_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
