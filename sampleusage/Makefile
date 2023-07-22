@@ -6,7 +6,7 @@ all: _build/CPM.cmake
 
 _build/CPM.cmake:
 	@mkdir -p $(@D)
-	wget -O _build/CPM.cmake https://raw.githubusercontent.com/cpm-cmake/CPM.cmake/master/cmake/CPM.cmake
+	wget -O $@ https://github.com/cpm-cmake/CPM.cmake/releases/latest/download/get_cpm.cmake
 
 build: B=
 build:
