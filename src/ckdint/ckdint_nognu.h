@@ -124,10 +124,10 @@ _ckd_fchpnt(3) bool _ckd_sub_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_
 }
 
 _ckd_fchpnt(3) bool _ckd_sub_usu_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
-	const _ckd_U _T1 = _ckd_U1 ^ _ckd_sign;
-	const _ckd_U _T2 = _T1 - _ckd_S2;
-	*_ckd_res = _T2 ^ _ckd_sign;
-	return (_ckd_S)_ckd_S2 < 0 ? (_ckd_S)_T2 < (_ckd_S)_T1 : (_ckd_S)_T2 > (_ckd_S)_T1;
+	const _ckd_U _t1 = _ckd_U1 ^ _ckd_sign;
+	const _ckd_U _t2 = _t1 - _ckd_S2;
+	*_ckd_res = _t2 ^ _ckd_sign;
+	return (_ckd_S)_ckd_S2 < 0 ? (_ckd_S)_t2 < (_ckd_S)_t1 : (_ckd_S)_t2 > (_ckd_S)_t1;
 }
 
 _ckd_fchpnt(3) bool _ckd_add_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
@@ -205,10 +205,10 @@ _ckd_fchpnt(3) bool _ckd_mul_sus_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_U2, _ckd_U *_
 }
 
 _ckd_fchpnt(3) bool _ckd_mul_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
-	const _ckd_U _T1 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S1) : _ckd_S1;
-	const _ckd_U _T2 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S2) : _ckd_S2;
-	*_ckd_res = _T1 * _T2;
-	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_signed_{{N}}(_T1, _T2);
+	const _ckd_U _t1 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S1) : _ckd_S1;
+	const _ckd_U _t2 = (_ckd_S)(_ckd_S1 & _ckd_S2) < 0 ? (-_ckd_S2) : _ckd_S2;
+	*_ckd_res = _t1 * _t2;
+	return (_ckd_S)(_ckd_S1 ^ _ckd_S2) < 0 ? (_ckd_S1 && _ckd_S2) : _ckd_ovf_signed_{{N}}(_t1, _t2);
 }
 
 _ckd_fchpnt(3) bool _ckd_mul_uss_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
@@ -505,4 +505,3 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 
 // ]]]
 // vim: ft=c
-
