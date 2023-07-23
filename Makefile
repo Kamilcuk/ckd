@@ -34,7 +34,7 @@ ifneq ($(R),)
 	endif
 endif
 
-
+# The number of build jobs.
 JOBS ?=
 
 all: test
