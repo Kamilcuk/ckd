@@ -1,0 +1,3 @@
+ARG VERSION
+FROM gcc:${VERSION}
+RUN apt update && apt install -y cmake python3-jinja2

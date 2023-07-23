@@ -41,12 +41,18 @@ if (($# == 1)) && [[ "$1" == "output" ]]; then
     mv "$cachedir"/tmp "$cachedir"/prev
     exit
 fi
+# Otherwise executed from CMake with compiler command line.
 
-# Otherwise executed from CMake with compoiler command line.
-mkdir -p "$cachedir"
+suffix=
+if [[ "$*" = *CKD_NOGNU_SOURCE* ]]; then
+	suffix="_nognu"
+fi
 # shellcheck disable=2124
 file="${@: -1}"
-file=${file##*/}
+file="${file##*/}"
+file="${file%%.c}"
+file="$file$suffix"
+mkdir -p "$cachedir"
 if [[ ! -e /usr/bin/time ]]; then
     TIMEFORMAT=$'%Uuser\t%Ssystem\t%Relapsed\t%PCPU\t-1MEM\t'"$file"
     # http://mywiki.wooledge.org/BashFAQ/032

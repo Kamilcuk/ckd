@@ -20,14 +20,21 @@ ARGS ?=
 F ?=
 # Regex filter to run only these tests
 R ?=
-R_TARGET = $(if $(value R),--target $(shell \
-		   cd tests && \
-		   printf "%s\n" * | \
-		   xargs basename -s .c | \
-		   grep "$R" | \
-		   sed 's/.*/ckd_&\nckd_&_nognu/' | \
-		   tr '\n' ' ' \
-		   ))
+ifneq ($(R),)
+	R_TARGETS = $(if $(value R),$(shell \
+				cd tests && \
+				printf "%s\n" *.c | \
+				xargs basename -s .c | \
+				sed 's/.*/ckd_&\nckd_&_nognu/' | \
+				grep "$R" | \
+				tr '\n' ' ' \
+				))
+	ifeq ($(R_TARGETS),)
+		$(error No CMake target found for $(R))
+	endif
+endif
+
+
 JOBS ?=
 
 all: test
@@ -35,7 +42,7 @@ all: test
 config:
 	cmake -S. -B$(B) -DCKD_DEV=1 $(CONFARGS) $(ARGS)
 build: config
-	$(RUN) $(TIME) cmake --build $(B) -j $(JOBS) $(if $(value VERBOSE),--verbose) $(R_TARGET)
+	$(RUN) $(TIME) cmake --build $(B) -j $(JOBS) $(if $(value VERBOSE),--verbose) $(if $(value R),--target $(R_TARGETS))
 gen: config
 	cmake --build $(B) --target ckdint_gen
 test: build
@@ -69,3 +76,8 @@ shorttest: gen
 	gcc -xc -o $(B)/shorttest.out $(B)/include/ckdint.h
 	$(B)/shorttest.out
 
+test_gcc: VERSION=11
+test_gcc:
+	docker build --build-arg VERSION=$(VERSION) -f Dockerfile.gcc  -t ckdint-gcc-$(VERSION) .
+	docker run -ti --rm -v $(PWD):/mnt -u $$(id -u):$$(id -g) -w /mnt ckdint-gcc-$(VERSION) \
+		make BSUF=docker-gcc-$(VERSION)
