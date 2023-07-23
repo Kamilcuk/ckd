@@ -143,7 +143,7 @@ _ckd_fchpnt(3) bool _ckd_add_uus_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_
 
 _ckd_fchpnt(3) bool _ckd_sub_uus_{{N}}(_ckd_U _ckd_U1, _ckd_U _ckd_U2, _ckd_U *_ckd_res) {
 	*_ckd_res = _ckd_U1 - _ckd_U2;
-	return _ckd_U1 >= _ckd_U2 ? (_ckd_S)*_ckd_res < 0 : (_ckd_S)*_ckd_res >= 0;
+	return _ckd_U1 >= _ckd_U2 ? ((_ckd_S)*_ckd_res < 0) : ((_ckd_S)*_ckd_res >= 0);
 }
 
 _ckd_fchpnt(3) bool _ckd_sub_ssu_{{N}}(_ckd_U _ckd_S1, _ckd_U _ckd_S2, _ckd_U *_ckd_res) {
@@ -273,6 +273,9 @@ _ckd_fconst {{V.UC}} _ckd_$OP_2_{{U}}(_ckd_arg_{{U}} _ckd_a, _ckd_arg_{{U}} _ckd
 	First, we need to remove the `#if` and `#endif` if one of types is int128, cause preprocessor can't handle int128.
 	Then, we can remove the check when resulting type is greater, like `int * int -> long`.
 	We can also remove the check when we know it's true, like `int * int -> int`.
+
+	V - promoted type from both operands and the result
+	B - any type that is the actual result type
 */
 #}
 		{% set noint128 = "int128" not in S and "int128" not in B.T %}
@@ -284,6 +287,7 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_{{U}}_to_$TYPE({{B.T}} *_ckd_ret, _ckd_arg_{{U}} 
 	{% elif B.SIGNED == 0 %}
 		_ckd_$OP_{{N}}_choose_u(
 	{% else %}
+	{# In case of CHAR - we do not know if it is SIGNED or not beforehand, has to be checked in preprocessor #}
 #if {{B.SIGNED}}
 		_ckd_$OP_{{N}}_choose_s(
 #else
@@ -291,18 +295,28 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_{{U}}_to_$TYPE({{B.T}} *_ckd_ret, _ckd_arg_{{U}} 
 #endif
 	{% endif %}
 			_ckd_a._ckd_Signed, _ckd_b._ckd_Signed, _ckd_a._ckd_Value, _ckd_b._ckd_Value, &_ckd_tmp)
+			|| _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow
+	{# /*
+		In case the operation is done on promoted types, the _choose_s has no way of getting the maximum of promoted type
+		Because of that, we check if the result type is within the ranges of the actual type.
+		Signed has to be within signed, and unsigned has to be smaller than max.
+	*/ #}
 	{% if B.SIGNED or (not B.SIGNED and B.HALFIDX <= HALFIDX) %}
 			{% set protect = not B.SIGNED and noint128 %}
 			{% if protect %}
 #if {{UMAX}} > {{B.MAX}}
 			{% endif %}
-			|| (_ckd_U) _ckd_tmp > (_ckd_U) {{B.MAX}}
+#if {{B.SIGNED}}
+			|| (_ckd_S)_ckd_tmp > {{B.MAX}} || (_ckd_S)_ckd_tmp < {{B.MIN}}
+#else
+			|| _ckd_tmp > {{B.MAX}}
+#endif
 			{% if protect %}
 #endif
 			{% endif %}
+			;
 	{% endif %}
-			|| _ckd_a._ckd_Overflow || _ckd_b._ckd_Overflow;
-	*_ckd_ret = ({{B.T}}) _ckd_tmp;
+	*_ckd_ret = ({{B.T}})_ckd_tmp;
 	return _ckd_of;
 }
 		{% endif %}
