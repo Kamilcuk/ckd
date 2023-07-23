@@ -2,7 +2,7 @@
 // https://gitlab.com/Kamcuk/ckd/-/issues/3
 // https://gist.github.com/jart/d004a1a39940247e5398180c8484ebbd
 
-#if !__GNUC__
+#if !__GNUC__ || __INTEL_COMPILER
 int main() {
 }
 #else
