@@ -41,7 +41,7 @@ int append3_2(size_t bufsize) {
 	if (ckd_inc(&bufsize)) {
 		return -1;
 	}
-	if (ckd_inc(&bufsize, 1)) {
+	if (ckd_inc(&bufsize, 3)) {
 		return -2;
 	}
 	if (ckd_inc(&bufsize)) {
@@ -49,7 +49,6 @@ int append3_2(size_t bufsize) {
 	}
 	return bufsize;
 }
-
 
 void test() {
 	TEST_EQ(my_calloc(1, 2), 2);
@@ -62,9 +61,28 @@ void test() {
 	TEST_EQ(append3(SIZE_MAX - 1), -2);
 	TEST_EQ(append3(SIZE_MAX - 2), -3);
 
-	TEST_EQ(append3_2(1), 4);
+	TEST_EQ(append3_2(1), 6);
 	TEST_EQ(append3_2(SIZE_MAX), -1);
 	TEST_EQ(append3_2(SIZE_MAX - 1), -2);
-	TEST_EQ(append3_2(SIZE_MAX - 2), -3);
+	TEST_EQ(append3_2(SIZE_MAX - 2), -2);
 
+	int i = 0;
+	TEST_EQ(ckd_inc(&i), false);
+	TEST_EQ(i, 1);
+	TEST_EQ(ckd_inc(&i), false);
+	TEST_EQ(i, 2);
+	TEST_EQ(ckd_inc(&i, 2), false);
+	TEST_EQ(i, 4);
+	TEST_EQ(ckd_inc(&i, 1), false);
+	TEST_EQ(i, 5);
+
+	i = 0;
+	TEST_EQ(ckd_dec(&i), false);
+	TEST_EQ(i, -1);
+	TEST_EQ(ckd_dec(&i), false);
+	TEST_EQ(i, -2);
+	TEST_EQ(ckd_dec(&i, 2), false);
+	TEST_EQ(i, -4);
+	TEST_EQ(ckd_dec(&i, 1), false);
+	TEST_EQ(i, -5);
 }
