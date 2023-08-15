@@ -33,7 +33,7 @@
 
 {#- TYPES - BASICTYPES + int128, so everything we can put into _Generic #}
 {% set TYPES = BASICTYPES.copy() %}
-{% if HAVE_UINT128 %}
+{% if HAVE_UINT128 | int %}
     {% for d in INT128TYPES %}
         {% set _ = TYPES.append(d) %}
     {% endfor %}
