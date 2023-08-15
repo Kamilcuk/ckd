@@ -21,17 +21,13 @@ F ?=
 # Regex filter to run only these tests
 R ?=
 ifneq ($(R),)
-	R_TARGETS = $(if $(value R),$(shell \
-				cd tests && \
-				printf "%s\n" *.c | \
-				xargs basename -s .c | \
-				sed 's/.*/ckd_&\nckd_&_nognu/' | \
-				grep "$R" | \
-				tr '\n' ' ' \
-				))
-	ifeq ($(R_TARGETS),)
-		$(error No CMake target found for $(R))
-	endif
+	R_ALL_TARGETS = $(shell \
+				cd tests && printf "%s\n" *.c | \
+				sed 's/\.c//; s/.*/ckd_&_gnu\nckd_&_nognu/' )
+	R_TARGETS = $(shell <<<"$(R_ALL_TARGETS)" tr ' ' '\n' | grep "$(R)" | tr '\n' ' ' )
+ifeq ($(R_TARGETS),)
+$(error No CMake target found for $(R): $(R_ALL_TARGETS))
+endif
 endif
 
 # The number of build jobs.
