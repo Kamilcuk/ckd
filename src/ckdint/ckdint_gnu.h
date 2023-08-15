@@ -92,6 +92,16 @@ _ckd_fconst {{A.C}} _ckd_cttoc$TYPE({{A.C}} _ckd_v) { return _ckd_v; }
 		})
 
 {% endcall %}
+
+#define _ckd_gnu_mk(value, overflow)  __extension__({ \
+		__auto_type _ckd_v = (value); \
+		_Generic((_ckd_v) \
+	{% call(A) L.foreach_TYPE() %}
+		,{{A.T}}: ckd_mk_$TYPE_t \
+	{% endcall %}
+		)(_ckd_v, overflow); \
+		})
+
 // ]]]
 #endif
 // vim: ft=c

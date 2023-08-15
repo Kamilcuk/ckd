@@ -513,6 +513,13 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 
 {% endcall %}
 
+#define _ckd_nognu_mk(value, overflow) \
+		_Generic((value) \
+	{% call(A) L.foreach_TYPE() %}
+		,{{A.T}}: ckd_mk_$TYPE_t \
+	{% endcall %}
+		)(value, overflow)
+
 // ]]]
 #endif
 // vim: ft=c

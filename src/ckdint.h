@@ -116,13 +116,6 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 }
 {% endcall %}
 
-#define ckd_mk(value, overflow) \
-		_Generic((value) \
-	{% call(A) L.foreach_TYPE() %}
-		,{{A.T}}: ckd_mk_$TYPE_t \
-	{% endcall %}
-		)(value, overflow)
-
 // ]]]
 // Macro helpers [[[
 // ]]]
@@ -133,6 +126,14 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 #include "ckdint/ckdint_gnu.h"
 #else
 #include "ckdint/ckdint_nognu.h"
+#endif
+
+#ifdef CKDINT_GNU
+#define ckd_mk(value, overflow)  _ckd_gnu_mk(value, overflow)
+#elif defined(CKDINT_NOGNU)
+#define ckd_mk(value, overflow)  _ckd_nognu_mk(value, overflow)
+#else
+#error "ckdint internal error - neight gnu or nognu version was included"
 #endif
 
 {% call() L.foreach_OP() %}
@@ -152,9 +153,8 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 #elif defined(CKDINT_NOGNU)
 #define _ckd_$OP_N(_1, _2, _3, N, ...)  _ckd_nognu_$OP_##N(_1, _2, _3)
 #else
-#error "ckdint internal error - neight gnu or nognu version was included"
+#error
 #endif
-
 
 /**
  * @define ckd_$OP(...)
@@ -220,4 +220,3 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 
 // ]]]
 // vim: ft=c
-
