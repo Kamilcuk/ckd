@@ -58,19 +58,19 @@ typedef struct {
 // Standard integer types aliases [[[
 
 {% call(A) L.foreach_TYPE(array=L.ALIASEDTYPES) %}
-/**
- * @define ckd_$TYPE_t
- * @brief Check integer type ckd_$TYPE_t is an alias to one of ckd_*_t basic types.
- */
+/// @define ckd_$TYPE_t
+/// @brief Checked integer type ckd_$TYPE_t is an alias to one of ckd_*_t basic types.
 	{# Optionall "el"if from the second case #}
 	{% set ns = namespace(EL="") %}
+#ifdef {{A.MAX}}
 	{% call(B) L.foreach_TYPE(array=L.BASICTYPES) %}
 		{% if ((A.SIGNED and B.SIGNED) or (not A.SIGNED and not B.SIGNED)) %}
-#{{ns.EL}}if defined({{A.MAX}}) && {{A.MAX}} == {{B.MAX}}
-#define {{A.C}}  {{B.C}}
+#{{ns.EL}}if {{A.MAX}} == {{B.MAX}}
+typedef {{B.C}} {{A.C}};
 			{% set ns.EL = "el" %}
 		{% endif %}
 	{% endcall %}
+#endif
 #endif
 {% endcall %}
 
@@ -107,12 +107,13 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * truncation, or  misinterpretation of sign.* Otherwise the value is assumed to
  * be mathematically correct.
  * @param value Unchecked integer.
- * @param oveflow Overflow flag.
+ * @param overflow Overflow flag.
  * @return Return a checked type that represents the value indicated by value and the exact
  * state indicated by overflow.
  */
 _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
-	const {{V.C}} _ckd_tmp = {_ckd_value, _ckd_overflow}; return _ckd_tmp;
+	const {{V.C}} _ckd_tmp = {_ckd_value, _ckd_overflow};
+	return _ckd_tmp;
 }
 {% endcall %}
 
@@ -220,3 +221,4 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 
 // ]]]
 // vim: ft=c
+
