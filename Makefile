@@ -50,11 +50,14 @@ clean:
 distclean:
 	rm -rf ./_build
 
-lint: gen
-	cd _build/include && cpplint \
-		--filter=-whitespace/tab,-runtime/int,-readability/casting,-readability/todo,-build/header_guard,-whitespace/comma,-whitespace/parens,-whitespace/braces \
+lint: cpplint clang-tidy
+cpplint:
+	$(NICE) cpplint \
+		--filter=-whitespace/tab,-runtime/int,-readability/casting,-readability/todo,-build/header_guard,-whitespace/comma,-whitespace/parens,-whitespace/braces,-whitespace/semicolon \
 		--linelength=150 \
-		*.h */*.h
+		gen/*.h gen/*/*.h
+clang-tidy:
+	$(NICE) clang-tidy -p $(B) gen/*.h
 
 coverage:
 	$(MAKE) BSUF=coverage ARGS=-DCKD_COVERAGE=1
