@@ -5,11 +5,12 @@ unexport MAKEFLAGS
 
 CONFARGS = $(shell hash ninja 2>/dev/null && echo -GNinja)
 TIME = $(shell hash time 2>/dev/null && echo time)
+NICE = ionice -c 3 nice -n 40
 RUN = $(shell \
           hash systemd-notify 2>/dev/null && \
           hash systemd-run 2>/dev/null && \
           systemd-notify --booted && \
-          echo systemd-run -p MemoryMax=10G --user -td)
+          echo systemd-run --user -tdqp MemoryMax=10G)
 
 
 # Path to build directory
@@ -24,8 +25,8 @@ ifneq ($(R),)
 	R_ALL_TARGETS = $(shell \
 				cd tests && printf "%s\n" *.c | \
 				sed 's/\.c//; s/.*/ckd_&_gnu\nckd_&_nognu/' )
-	R_TARGETS = $(shell <<<"$(R_ALL_TARGETS)" tr ' ' '\n' | grep "$(R)" | tr '\n' ' ' )
-ifeq ($(R_TARGETS),)
+	TARGETS = $(shell <<<"$(R_ALL_TARGETS)" tr ' ' '\n' | grep "$(R)" | tr '\n' ' ' )
+ifeq ($(TARGETS),)
 $(error No CMake target found for $(R): $(R_ALL_TARGETS))
 endif
 endif
@@ -36,13 +37,13 @@ JOBS ?=
 all: test
 
 config:
-	cmake -S. -B$(B) -DCKD_DEV=1 $(CONFARGS) $(ARGS)
+	$(NICE) cmake -S. -B$(B) -DCKD_DEV=1 --check-system-vars --log-context -Werror=dev -Wdev $(CONFARGS) $(ARGS)
 build: config
-	$(RUN) $(TIME) cmake --build $(B) -j $(JOBS) $(if $(value VERBOSE),--verbose) $(if $(value R),--target $(R_TARGETS))
+	$(RUN) $(NICE) $(TIME) cmake --build $(B) -j $(JOBS) $(if $(value VERBOSE),--verbose) $(if $(value TARGETS),--target $(TARGETS))
 gen: config
-	cmake --build $(B) --target ckdint_gen
+	$(NICE) cmake --build $(B) --target ckdint_gen
 test: build
-	cd $(B) && ctest $(if $(value R),-R "$R") $(if $F,--rerun-failed -j1) --output-on-failure $(ARGS)
+	cd $(B) && $(NICE) ctest $(if $(value R),-R "$R") $(if $F,--rerun-failed -j1) --output-on-failure $(ARGS)
 	wc $(B)/include/*.h $(B)/include/*/*.h
 clean:
 	rm -rf $(B)

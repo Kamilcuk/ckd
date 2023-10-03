@@ -18,7 +18,7 @@ gcc:
   script:
     - pacman -Sy --noconfirm python-jinja
     - make test
-    - mv _build/gcc/include ./include
+    - mv -v _build/gcc/include ./include
   artifacts:
     paths:
       - include
