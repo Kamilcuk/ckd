@@ -48,3 +48,12 @@ sampleproject:
   script:
     - apk add py3-jinja2
     - cd ./sampleusage && make
+
+pages:
+  image: registry.gitlab.com/kamcuk/builder:alpine
+  script:
+    - apk add py3-jinja2 doxygen
+    - make doxygen
+  artifacts:
+    paths:
+      - public

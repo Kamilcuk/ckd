@@ -5,44 +5,6 @@ project(ckd LANGUAGES C)
 
 include(CheckTypeSize)
 
-if(CKD_DEV)
-  include(CTest)
-  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-  set(BUILD_TESTING 1)
-  set(CKD_BUILD_TESTING 1)
-  find_program(BASH bash)
-  if(BASH AND NOT CMAKE_C_COMPILER_LAUNCHER)
-    set(CMAKE_C_COMPILER_LAUNCHER
-        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/measure.sh)
-  endif()
-  execute_process(
-    COMMAND
-      ${CMAKE_COMMAND} -E create_symlink
-      ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-      ${CMAKE_SOURCE_DIR}/compile_commands.json)
-  if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    add_compile_options(-Wall -Wextra -Wwrite-strings -Werror=all
-                        -Wfatal-errors)
-    if(NOT CKD_COVERAGE AND NOT CKD_NOSANITIZE)
-      set(_sanitize
-          -fsanitize=undefined,address,pointer-compare,pointer-subtract)
-      add_compile_options(${_sanitize})
-      add_link_options(${_sanitize})
-    endif()
-  endif()
-  if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-    add_link_options(
-      # compiler-rt provides symbols for __builtin_*_overflow for clang
-      -rtlib=compiler-rt)
-  endif()
-  if(CKD_COVERAGE)
-    add_compile_definitions(CKD_COVERAGE=1)
-    add_compile_options(-Werror -Werror=overflow -O0 -g -fprofile-arcs
-                        -ftest-coverage)
-    link_libraries(gcov)
-  endif()
-endif()
-
 # ##############################################################################
 
 find_package(Git QUIET REQUIRED)
@@ -69,6 +31,76 @@ list(GET _tmp 1 _minor)
 list(GET _tmp 2 _patch)
 math(EXPR CKD_VERSION "${_major}*256*256+${_minor}*256+${_patch}"
      OUTPUT_FORMAT HEXADECIMAL)
+
+# ##############################################################################
+
+if(CKD_DEV)
+  include(CTest)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+  set(BUILD_TESTING 1)
+  set(CKD_BUILD_TESTING 1)
+  find_program(BASH bash)
+  if(BASH AND NOT CMAKE_C_COMPILER_LAUNCHER)
+    set(CMAKE_C_COMPILER_LAUNCHER
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/measure.sh)
+  endif()
+  execute_process(
+    COMMAND
+      ${CMAKE_COMMAND} -E create_symlink
+      ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+      ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json)
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_CURRENT_BINARY_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/gen)
+  if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wall -Wextra -Wwrite-strings -Werror=all
+                        -Wfatal-errors)
+    if(NOT CKD_COVERAGE AND NOT CKD_NOSANITIZE)
+      set(_sanitize
+          -fsanitize=undefined,address,pointer-compare,pointer-subtract)
+      add_compile_options(${_sanitize})
+      add_link_options(${_sanitize})
+    endif()
+  endif()
+  if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    add_link_options(
+      # compiler-rt provides symbols for __builtin_*_overflow for clang
+      -rtlib=compiler-rt)
+  endif()
+  if(CKD_COVERAGE)
+    add_compile_definitions(CKD_COVERAGE=1)
+    add_compile_options(-Werror -Werror=overflow -O0 -g -fprofile-arcs
+                        -ftest-coverage)
+    link_libraries(gcov)
+  endif()
+  if(CKD_DOXYGEN)
+    find_package(Doxygen REQUIRED dot OPTIONAL_COMPONENTS mscgen dia)
+    set(_cfg
+        GENERATE_HTML=YES
+        HTML_OUTPUT=${CMAKE_CURRENT_SOURCE_DIR}/public
+        ENABLE_PREPROCESSING=YES
+        MACRO_EXPANSION=YES
+        "PREDEFINED=\"CKD_DOXYGEN=1\""
+        QUIET=YES
+        WARN_IF_UNDOCUMENTED=NO
+        WARN_AS_ERROR=YES
+        PROJECT_NUMBER=${CKD_VERSION_DESCRIBE}
+        "PROJECT_BRIEF=Implementation of C23 stdckdint.h"
+        USE_MDFILE_AS_MAINPAGE=${CMAKE_CURRENT_SOURCE_DIR}/README.md
+        #
+    )
+    foreach(ii IN LISTS _cfg)
+      string(REGEX REPLACE "^([^=]*)=(.*)$" "\\1;\\2" ii "${ii}")
+      set(DOXYGEN_${ii})
+    endforeach()
+    doxygen_add_docs(
+      doxygen ${CMAKE_CURRENT_BINARY_DIR}/include
+      ${CMAKE_CURRENT_SOURCE_DIR}/README.md
+      ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include)
+    add_dependencies(doxygen ckdint_gen)
+  endif()
+endif()
 
 # ##############################################################################
 
@@ -105,7 +137,8 @@ endforeach()
 add_custom_target(
   ckdint_gen
   DEPENDS ${_generated}
-  COMMENT "Generated ${PROJECT_NAME} header file")
+  COMMENT "Generated ${PROJECT_NAME} header files")
+
 add_library(${PROJECT_NAME} INTERFACE)
 add_dependencies(${PROJECT_NAME} ckdint_gen)
 target_include_directories(

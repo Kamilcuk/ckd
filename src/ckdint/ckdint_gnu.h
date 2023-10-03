@@ -16,7 +16,7 @@
 // Helper macros [[[
 
 /**
- * @define ckd_ctypeof(x)
+ * @def _ckd_ctypeof(x)
  * @brief For any basic type and checked type return a zero intialized
  * associated checked integer type. This is to be used in _Generic expressions.
  * @param X Any integer type or checked integer type.
@@ -36,7 +36,7 @@ _ckd_fconst {{A.C}} _ckd_toct_c$TYPE({{A.C}} _ckd_v, bool _ckd_ignore) { (void)_
 {% endcall %}
 
 /**
- * @define ckd_toct(x)
+ * @def _ckd_toct(x)
  * @brief For any basic type and checked type convert it to associated
  * checked integer type. Integers have overflow equal to 0.
  * @param X Any integer type or checked integer type.

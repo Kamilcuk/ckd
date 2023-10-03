@@ -1,3 +1,6 @@
 .cache
-./_build
+_build
 compile_commands.json
+public
+pages
+gen

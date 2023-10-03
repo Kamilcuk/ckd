@@ -17,14 +17,17 @@
 #include <stdint.h>
 
 #ifndef _ckd_static
+/// @def _ckd_static
 #ifdef CKD_COVERAGE
 #define _ckd_static  static __attribute__((__noinline__)) __attribute__((__used__))
 #else
 #define _ckd_static  static inline
 #endif
 #endif
-// _ckd_fchpnt - Function returns value and changes pointer.
-// _ckd_fconst - Function only returns value.
+/// @def _ckd_fchpnt(x)
+/// @brief Function attribute for functions that return value and change pointer.
+/// @def _ckd_fconst
+/// @brief Function attribute for functions that only return value.
 #if __GNUC__
 #define _ckd_fconst     _ckd_static __attribute__((__warn_unused_result__)) __attribute__((__const__))
 #if __GNUC__ >= 10 && !__INTEL_COMPILER
@@ -58,8 +61,11 @@ typedef struct {
 // Standard integer types aliases [[[
 
 {% call(A) L.foreach_TYPE(array=L.ALIASEDTYPES) %}
-/// @define ckd_$TYPE_t
+/// @def ckd_$TYPE_t
 /// @brief Checked integer type ckd_$TYPE_t is an alias to one of ckd_*_t basic types.
+#ifdef CKD_DOXYGEN
+#define ckd_$TYPE_t  /* implementation defined type */
+#else
 	{# Optionall "el"if from the second case #}
 	{% set ns = namespace(EL="") %}
 #ifdef {{A.MAX}}
@@ -72,13 +78,14 @@ typedef {{B.C}} {{A.C}};
 	{% endcall %}
 #endif
 #endif
+#endif
 {% endcall %}
 
 // ]]]
 // Check integer accessors [[[
 
 /**
- * @define bool ckd_overflow(ckd_type_t x);
+ * @def ckd_overflow(ckd_type_t x)
  * @brief If ckd_type is a checked integer type, the ckd_overflow macro indicates if x was computed
 using an operation that overflowed or suffered truncation or misinterpretation of sign.
  * @param x One of checked integer types.
@@ -88,7 +95,7 @@ using an operation that overflowed or suffered truncation or misinterpretation o
 #define ckd_overflow(x)  ((x)._ckd_Overflow)
 
 /**
- * @define type ckd_value(ckd_type x);
+ * @def ckd_value(ckd_type x)
  * @brief If ckd_type is a checked integer type, the ckd_value macro indicates the value of x.
  * If the overflow flag is set to false, the value correctly represents the mathematical value of whatever
  * operation(s) produced x. Otherwise, the value of x is converted as if by assignment to the type of x.
@@ -106,8 +113,8 @@ using an operation that overflowed or suffered truncation or misinterpretation o
  * If the overflow flag is true, the value is assumed to have involved overflow,
  * truncation, or  misinterpretation of sign.* Otherwise the value is assumed to
  * be mathematically correct.
- * @param value Unchecked integer.
- * @param overflow Overflow flag.
+ * @param _ckd_value Unchecked integer.
+ * @param _ckd_overflow Overflow flag.
  * @return Return a checked type that represents the value indicated by value and the exact
  * state indicated by overflow.
  */
@@ -129,6 +136,16 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 #include "ckdint/ckdint_nognu.h"
 #endif
 
+/// @def ckd_mk(value, overflow)
+/// @param value unchecked integer
+/// @param overflow inexact flag
+/// @brief This macro constructs a checked integer type given an unchecked integer and an inexact flag.
+/// If the inexact flag is true, the value is assumed to have involved overflow, truncation, or
+/// misinterpretation of sign.* Otherwise the value is assumed to be mathematically correct.
+/// Constructing a checked integer with an inexact flag set to true can be useful when
+/// explicitly indicating an error inside an expression.
+/// @return This macro returns a checked type that represents the value indicated by value and the exact state
+/// indicated by inexact.
 #ifdef CKDINT_GNU
 #define ckd_mk(value, overflow)  _ckd_gnu_mk(value, overflow)
 #elif defined(CKDINT_NOGNU)
@@ -139,14 +156,7 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 
 {% call() L.foreach_OP() %}
 
-/// @define _ckd_$OP_3
-/// @brief ckd_$OP overflow for 3 arguments.
-/// @see ckd_$OP
-
-/// @define _ckd_$OP_2
-/// @brief ckd_$OP overflow for 2 arguments.
-/// @see ckd_$OP
-
+/// @def _ckd_$OP_N
 /// @brief Macro overload on number of arguments for ckd_$OP
 /// @see ckd_$OP
 #ifdef CKDINT_GNU
@@ -154,11 +164,11 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 #elif defined(CKDINT_NOGNU)
 #define _ckd_$OP_N(_1, _2, _3, N, ...)  _ckd_nognu_$OP_##N(_1, _2, _3)
 #else
-#error
+#error "ckdint internal error - neight gnu or nognu version was included"
 #endif
 
 /**
- * @define ckd_$OP(...)
+ * @def ckd_$OP(result, a, b)
  * @brief `bool ckd_$OP(type1 *result, type2 a, type3 b);` or `ckd_type_t ckd_$OP(type1 a, type2 b);`
  * @param a Any checked or unchecked integer type other than plain char, bool, or an enumeration type.
  * @param b Any checked or unchecked integer type other than plain char, bool, or an enumeration type.
@@ -178,21 +188,18 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
  * particular type.  For the first form, this particular type is type1. For the second form, this type is the
  * type that would have been used had the operands undergone usual arithmetic conversion. (Section 6.3.1.8)
  */
+#ifdef CKD_DOXYGEN
+#define ckd_$OP(result, a, b)
+#else
 #define ckd_$OP(...)  _ckd_$OP_N(__VA_ARGS__, 3, 2)
+#endif
 
 {% endcall %}
 // ]]]
 // Extensions [[[
 
-/**
- * @define ckd_inc(...)
- * @brief ckd_inc(pnt) or ckd_inc(pnt, inc).
- * Increments value pointed to by pnt by 1 or by inc.
- * @param pnt Pointer to checked integer type or normal integer type.
- * Warning: it is evaulated twice in nognu mode!
- * @param inc The value to increment with. 1 by default.
- * @return overflow
- */
+/// @def _ckd_inc_in
+/// @brief internal callback from ckd_inc
 #ifdef CKDINT_GNU
 #define _ckd_inc_in(pnt, inc, ...)  __extension__({ \
 		__auto_type _ckd_pnt = (pnt); \
@@ -201,17 +208,24 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 #else
 #define _ckd_inc_in(pnt, inc, ...)  ckd_add((pnt), *(pnt), (inc))
 #endif
-#define ckd_inc(...)  _ckd_inc_in(__VA_ARGS__, 1)
 
 /**
- * @define ckd_dec(...)
- * @brief ckd_dec(pnt) or ckd_dec(pnt, inc).
- * Decrements value pointed to by pnt by 1 or by inc.
+ * @def ckd_inc(...)
+ * @brief ckd_inc(pnt) or ckd_inc(pnt, inc).
+ * Increments value pointed to by pnt by 1 or by inc.
  * @param pnt Pointer to checked integer type or normal integer type.
  * Warning: it is evaulated twice in nognu mode!
  * @param inc The value to increment with. 1 by default.
  * @return overflow
  */
+#ifdef CKD_DOXYGEN
+#define ckd_inc(pnt, inc)
+#else
+#define ckd_inc(...)  _ckd_inc_in(__VA_ARGS__, 1)
+#endif
+
+/// @def _ckd_dec_in
+/// @brief internal callback from ckd_dec
 #ifdef CKDINT_GNU
 #define _ckd_dec_in(pnt, inc, ...)  __extension__({ \
 		__auto_type _ckd_pnt = (pnt); \
@@ -220,7 +234,21 @@ _ckd_fconst {{V.C}} ckd_mk_{{V.N}}_t({{V.T}} _ckd_value, bool _ckd_overflow) {
 #else
 #define _ckd_dec_in(pnt, inc, ...)  ckd_sub((pnt), *(pnt), (inc))
 #endif
+
+/**
+ * @def ckd_dec(...)
+ * @brief ckd_dec(pnt) or ckd_dec(pnt, inc).
+ * Decrements value pointed to by pnt by 1 or by inc.
+ * @param pnt Pointer to checked integer type or normal integer type.
+ * Warning: it is evaulated twice in nognu mode!
+ * @param inc The value to increment with. 1 by default.
+ * @return overflow
+ */
+#ifdef CKD_DOXYGEN
+#define ckd_dec(pnt, inc)
+#else
 #define ckd_dec(...)  _ckd_dec_in(__VA_ARGS__, 1)
+#endif
 
 // ]]]
 // EOF [[[

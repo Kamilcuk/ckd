@@ -38,6 +38,7 @@
 {% endmacro %}
 
 {% call(A) L.foreach_TYPE(promotedonly=1, unsignedonly=1) %}
+/// Argument type structure passed around as arguments converted to unsigned type.
 typedef struct {
 	/// Represents the stored value.
 	{{A.T}} _ckd_Value;
@@ -350,7 +351,7 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYP
 {# There are 11 basic types. 22 types with checked integer types. 26 with int128. So type indexes range from 0 to 25. #}
 {% set MUL = 100 %}
 /**
- * @define _ckd_toidx(X)
+ * @def _ckd_toidx(X)
  * @param X Any checked integer type or normal integer type.
  * @return Unique number of that type.
  * @brief Imagine all checked integer types and normal integer types are numbered.
@@ -365,7 +366,7 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYP
 			)
 
 /**
- * @define _ckd_topidx(X)
+ * @def _ckd_topidx(X)
  * @brief TO Promoted IDX.
  * @param X Any checked and unchecked integer type.
  * @return Number of type after integer promotions.
@@ -392,7 +393,7 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYP
 			)
 
 /**
- * @define _ckd_putoidx(X)
+ * @def _ckd_putoidx(X)
  * @brief Promoted Unsigned TO IDX. Same as _ckd_toidx, but only promoted unsigned types.
  * @param X Any promoted unsigned integer type.
  * @return Index of that type.
@@ -406,7 +407,7 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYP
 			)
 
 /**
- * @define _ckd_topuntype(X)
+ * @def _ckd_topuntype(X)
  * @brief TO Promoted UNsigned TYPE
  * @param X Checked integer type or normal integer type.
  * @return Associated unsigned promoted integer type of the associated normal integer with value 0.
@@ -421,7 +422,7 @@ _ckd_fchpnt(1) bool _ckd_$OP_3_$TYPE_to_c$TYPE2({{B.C}} *_ckd_ret, _ckd_arg_$TYP
 			)
 
 /**
- * @define _ckd_totype(X)
+ * @def _ckd_totype(X)
  * @param X Checked integer type or normal integer type.
  * @return Associated normal integer type with value 0.
  */
@@ -453,7 +454,7 @@ _ckd_fconst _ckd_arg_$TYPE _ckd_c$TYPE2_to_arg_$TYPE({{B.C}} _ckd_v) {
 {% endcall %}
 
 /**
- * @define _ckd_arg(TO, FROM)
+ * @def _ckd_arg(TO, FROM)
  * @brief Converts any integer or checked integer type into an _ckd_arg of integer type TO.
  * @param TO Any integer type or checked integer type.
  * @param FROM Any integer type or checked integer type.

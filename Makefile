@@ -81,3 +81,8 @@ test_gcc:
 	docker build --build-arg VERSION=$(VERSION) -f Dockerfile.gcc  -t ckdint-gcc-$(VERSION) .
 	docker run -ti --rm -v $(PWD):/mnt -u $$(id -u):$$(id -g) -w /mnt ckdint-gcc-$(VERSION) \
 		make BSUF=docker-gcc-$(VERSION)
+
+doxygen: CONFARGS = -DCKD_DOXYGEN=1
+doxygen: BSUF = doxygen
+doxygen: TARGETS = doxygen
+doxygen: build
