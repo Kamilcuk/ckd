@@ -65,7 +65,8 @@ if(CKD_DEV)
   if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     add_link_options(
       # compiler-rt provides symbols for __builtin_*_overflow for clang
-      -rtlib=compiler-rt)
+      # -rtlib=compiler-rt
+    )
   endif()
   if(CKD_COVERAGE)
     add_compile_definitions(CKD_COVERAGE=1)

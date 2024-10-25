@@ -1,3 +1,7 @@
-.cache
-./_build
-compile_commands.json
+*
+!src
+!scripts
+!tests
+!CMakeLists.txt
+!Makefile
+!.git

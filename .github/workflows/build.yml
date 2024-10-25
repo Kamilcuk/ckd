@@ -1,0 +1,22 @@
+---
+on:
+  - push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      matrix:
+        target:
+          - alpine
+          - gcc
+          - clang
+          - intel
+    runs-on: nomadtools mem=500
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+      - run: DOCKER_BUILDKIT=1 docker build --pull --target ${{matrix.target}} .
+
