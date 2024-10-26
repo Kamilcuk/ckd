@@ -12,7 +12,7 @@ COPY . .
 RUN make doxygen
 
 FROM scratch AS doxygen
-COPY --from=make_doxygen /app/public .
+COPY --from=make_doxygen /app/public /
 
 ###############################################################################
 
