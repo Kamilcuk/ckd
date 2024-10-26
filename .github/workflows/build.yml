@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: hadolint/hadolint-action@v3.1.0
       - run: DOCKER_BUILDKIT=1 docker build --pull --target ${{matrix.target}} .
 
