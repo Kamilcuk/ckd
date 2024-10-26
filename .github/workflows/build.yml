@@ -7,6 +7,7 @@ concurrency:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         target:
           - alpine
