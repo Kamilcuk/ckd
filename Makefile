@@ -3,7 +3,8 @@ MAKEFLAGS = -rR --no-print-directories --warn-undefined-variables
 unexport MAKEFLAGS
 .NOTPARALLEL:
 
-CONFARGS = $(shell hash ninja 2>/dev/null && echo -GNinja)
+CONFARGS ?=
+GENERATOR = $(shell hash ninja 2>/dev/null && echo -GNinja)
 TIME = $(shell hash time 2>/dev/null && echo time)
 NICE = ionice -c 3 nice -n 40
 RUN = $(shell \
@@ -37,7 +38,7 @@ JOBS ?=
 all: test
 
 config:
-	$(NICE) cmake -S. -B$(B) -DCKD_DEV=1 --check-system-vars --log-context -Werror=dev -Wdev $(CONFARGS) $(ARGS)
+	$(NICE) cmake -S. -B$(B) -DCKD_DEV=1 --check-system-vars --log-context -Werror=dev -Wdev $(GENERATOR) $(CONFARGS) $(ARGS)
 build: config
 	$(RUN) $(NICE) $(TIME) cmake --build $(B) -j $(JOBS) $(if $(value VERBOSE),--verbose) $(if $(value TARGETS),--target $(TARGETS))
 gen: config
